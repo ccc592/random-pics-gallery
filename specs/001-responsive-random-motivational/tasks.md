@@ -1,233 +1,223 @@
-# Tasks: Responsive Random Motivational Image Website
+# Tasks: Responsive Random Motivational Image Website (Simplified)
 
 **Input**: Design documents from `/specs/001-responsive-random-motivational/`
-**Prerequisites**: plan.md (✅), research.md (✅), data-model.md (✅), contracts/ (✅)
+**Prerequisites**: plan.md (✓), research.md (✓), data-model.md (✓), contracts/ (✓), quickstart.md (✓)
 
 ## Execution Flow (main)
 ```
-1. Load plan.md from feature directory
-   → ✅ Tech stack: Go 1.23+ backend (Gin), Astro 4.x frontend
-   → ✅ Structure: backend/ and frontend/ directories
-2. Load optional design documents:
-   → ✅ data-model.md: 3 entities (Image, User, APIRequest)
-   → ✅ contracts/: 4 files (api.go, openapi.yaml, types.ts, schema.json)
-   → ✅ research.md: Go ecosystem and architecture decisions
+1. Load plan.md from feature directory ✓
+   → Extract: Go 1.23+ backend, Astro 4.x frontend, PostgreSQL only, OAuth 2.0
+2. Load optional design documents ✓:
+   → data-model.md: Users (OAuth), Images (local storage), API requests entities
+   → contracts/: openapi.yaml, api.go, types.ts, schema.json
+   → research.md: Simplified architecture decisions (no S3, no Kinde, JPEG/PNG only)
 3. Generate tasks by category:
-   → ✅ Setup: project init, dependencies, Docker environment
-   → ✅ Tests: 8 contract tests + 5 integration tests
-   → ✅ Core: 3 models + 4 services + 5 API endpoints
-   → ✅ Integration: DB, auth, middleware, storage
-   → ✅ Polish: unit tests, performance, documentation
+   → Setup: project init, PostgreSQL, OAuth dependencies, local storage
+   → Tests: contract tests, integration tests (TDD)
+   → Core: OAuth models, image models, services, endpoints, UI components
+   → Integration: DB, OAuth middleware, filesystem storage, logging
+   → Polish: unit tests, performance validation, deployment
 4. Apply task rules:
-   → ✅ Different files marked [P] for parallel execution
-   → ✅ Same file tasks are sequential
-   → ✅ Tests before implementation (TDD)
-5. Number tasks sequentially (T001-T041)
-6. Generate dependency graph
-7. Create parallel execution examples
-8. ✅ All contracts have tests, all entities have models
+   → Different files = mark [P] for parallel
+   → Tests before implementation (TDD mandatory)
+   → OAuth setup before image functionality
+5. Number tasks sequentially (T001, T002...)
+6. SUCCESS: 42 tasks ready for execution (simplified from 75)
 ```
 
 ## Format: `[ID] [P?] Description`
 - **[P]**: Can run in parallel (different files, no dependencies)
-- Include exact file paths in descriptions
+- Paths use web app structure: `backend/`, `frontend/`
 
-## Path Conventions
-- **Backend**: `backend/` directory with Go project structure
-- **Frontend**: `frontend/` directory with Astro project structure
-- **Tests**: Separate `tests/` directories in each project
+## Phase 3.1: Project Setup (Simplified Architecture)
 
-## Phase 3.1: Setup & Environment
-- [ ] T001 Create Go backend project structure in `backend/` directory
-- [ ] T002 Initialize Go module with Gin framework and dependencies
-- [ ] T003 [P] Create Astro frontend project structure in `frontend/` directory
-- [ ] T004 [P] Configure Docker Compose with PostgreSQL, MinIO, API, and frontend services
-- [ ] T005 [P] Setup Go project linting with golangci-lint in `backend/.golangci.yml`
-- [ ] T006 [P] Setup Astro project with Tailwind CSS and TypeScript configuration
-- [ ] T007 [P] Create database migration files in `backend/migrations/`
-- [ ] T008 [P] Configure GitHub Actions workflows in `.github/workflows/`
+- [x] **T001** Create full-stack project structure with simplified backend/ and frontend/ directories
+- [x] **T002** [P] Initialize Go backend module with Go 1.23+, Gin, PostgreSQL driver, OAuth 2.0 libraries
+- [x] **T003** [P] Initialize Astro frontend project with TypeScript, Tailwind CSS, OAuth client dependencies
+- [x] **T004** [P] Configure backend linting (golangci-lint) and formatting (gofmt) in backend/.golangci.yml
+- [x] **T005** [P] Configure frontend linting (ESLint, Prettier) and TypeScript in frontend/
+- [x] **T006** Create local development environment with PostgreSQL container and filesystem storage setup
+- [x] **T007** Create database migrations directory and initial migration files in backend/migrations/
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
 
-### Contract Tests (API Endpoints)
-- [ ] T009 [P] Contract test GET /health in `backend/tests/contract/health_test.go`
-- [ ] T010 [P] Contract test GET /metrics in `backend/tests/contract/metrics_test.go`
-- [ ] T011 [P] Contract test GET /api/random-images in `backend/tests/contract/random_images_test.go`
-- [ ] T012 [P] Contract test GET /api/images in `backend/tests/contract/list_images_test.go`
-- [ ] T013 [P] Contract test POST /api/images in `backend/tests/contract/create_image_test.go`
-- [ ] T014 [P] Contract test PATCH /api/images/{id} in `backend/tests/contract/update_image_test.go`
-- [ ] T015 [P] Contract test DELETE /api/images/{id} in `backend/tests/contract/delete_image_test.go`
-- [ ] T016 [P] Contract test GET /api/images/{id} in `backend/tests/contract/get_image_test.go`
+### Backend Contract Tests (OAuth Simplified)
+- [x] **T008** [P] Contract test GET /auth/login?provider=google in backend/tests/contract/auth_login_test.go
+- [x] **T009** [P] Contract test GET /auth/callback with OAuth code in backend/tests/contract/auth_callback_test.go
+- [x] **T010** [P] Contract test POST /auth/logout in backend/tests/contract/auth_logout_test.go
+- [x] **T011** [P] Contract test GET /auth/me for user profile in backend/tests/contract/auth_me_test.go
+- [x] **T012** [P] Contract test GET /api/random-images in backend/tests/contract/random_images_test.go
+- [x] **T013** [P] Contract test POST /api/images/upload (JPEG/PNG only, 2MB limit) in backend/tests/contract/image_upload_test.go
+- [x] **T014** [P] Contract test GET /api/images/{id} in backend/tests/contract/image_get_test.go
+- [x] **T015** [P] Contract test PUT /api/images/{id} in backend/tests/contract/image_update_test.go
+- [x] **T016** [P] Contract test DELETE /api/images/{id} in backend/tests/contract/image_delete_test.go
 
-### Integration Tests (User Scenarios)
-- [ ] T017 [P] Integration test random image selection in `backend/tests/integration/random_selection_test.go`
-- [ ] T018 [P] Integration test Fisher-Yates shuffle with weights in `backend/tests/integration/shuffle_test.go`
-- [ ] T019 [P] Integration test image upload and processing in `backend/tests/integration/image_upload_test.go`
-- [ ] T020 [P] Integration test authentication flow in `backend/tests/integration/auth_test.go`
-- [ ] T021 [P] Integration test rate limiting in `backend/tests/integration/rate_limit_test.go`
+### Backend Integration Tests (Simplified)
+- [x] **T017** [P] Integration test OAuth 2.0 flow end-to-end (Google provider) in backend/tests/integration/oauth_flow_test.go
+- [x] **T018** [P] Integration test image upload with JPEG/PNG validation in backend/tests/integration/image_upload_test.go
+- [x] **T019** [P] Integration test Fisher-Yates randomization with weights in backend/tests/integration/randomizer_test.go
+- [x] **T020** [P] Integration test PostgreSQL user and image storage in backend/tests/integration/database_test.go
+- [x] **T021** [P] Integration test local filesystem storage with 10GB limit in backend/tests/integration/storage_test.go
 
-### Frontend E2E Tests
-- [ ] T022 [P] E2E test responsive image gallery in `frontend/tests/e2e/gallery.spec.ts`
-- [ ] T023 [P] E2E test image refresh functionality in `frontend/tests/e2e/refresh.spec.ts`
+### Frontend E2E Tests (Simplified)
+- [x] **T022** [P] E2E test OAuth login flow (Google) in frontend/tests/e2e/auth.spec.ts
+- [x] **T023** [P] E2E test image upload (JPEG/PNG only, 2MB limit) in frontend/tests/e2e/upload.spec.ts
+- [x] **T024** [P] E2E test random image display in frontend/tests/e2e/gallery.spec.ts
+- [x] **T025** [P] E2E test responsive design (modern browsers only) in frontend/tests/e2e/responsive.spec.ts
 
-## Phase 3.3: Backend Core Implementation (ONLY after tests are failing)
+## Phase 3.3: Core Implementation (ONLY after tests are failing)
 
-### Database Models & Migrations
-- [ ] T024 [P] Image model struct in `backend/internal/db/models/image.go`
-- [ ] T025 [P] User model struct in `backend/internal/db/models/user.go`
-- [ ] T026 [P] APIRequest model struct in `backend/internal/db/models/api_request.go`
-- [ ] T027 Database connection and migration runner in `backend/internal/db/database.go`
+### Backend Models and Database (PostgreSQL Only)
+- [x] **T026** [P] User model with OAuth provider mapping in backend/internal/db/models/user.go
+- [x] **T027** [P] Image model with local storage path and JPEG/PNG constraints in backend/internal/db/models/image.go
+- [x] **T028** [P] API request log model for rate limiting in backend/internal/db/models/api_request.go
+- [x] **T029** Database migration for users table (OAuth fields) in backend/migrations/001_create_users.up.sql
+- [x] **T030** Database migration for images table (local storage) in backend/migrations/002_create_images.up.sql
+- [x] **T031** Database migration for API requests table in backend/migrations/003_create_api_requests.up.sql
 
-### Core Services
-- [ ] T028 [P] Image service with CRUD operations in `backend/internal/image/service.go`
-- [ ] T029 [P] Fisher-Yates randomizer service in `backend/internal/randomizer/service.go`
-- [ ] T030 [P] Storage service with local/S3 backends in `backend/internal/image/storage.go`
-- [ ] T031 [P] Authentication service with JWT/OIDC in `backend/internal/auth/service.go`
+### Backend Services (Simplified)
+- [x] **T032** [P] UserService with OAuth 2.0 integration in backend/internal/services/user_service.go
+- [x] **T033** [P] ImageService with JPEG/PNG processing only in backend/internal/services/image_service.go
+- [x] **T034** [P] RandomizerService with Fisher-Yates algorithm in backend/internal/services/randomizer_service.go
+- [x] **T035** [P] StorageService for local filesystem only in backend/internal/services/storage_service.go
 
-### API Endpoints & Handlers
-- [ ] T032 Health check handler in `backend/internal/api/health.go`
-- [ ] T033 Metrics handler in `backend/internal/api/metrics.go`
-- [ ] T034 Random images handler in `backend/internal/api/random_images.go`
-- [ ] T035 List images handler in `backend/internal/api/list_images.go`
-- [ ] T036 Create image handler in `backend/internal/api/create_image.go`
-- [ ] T037 Update image handler in `backend/internal/api/update_image.go`
-- [ ] T038 Delete image handler in `backend/internal/api/delete_image.go`
-- [ ] T039 Get image by ID handler in `backend/internal/api/get_image.go`
+### Backend Authentication & Middleware (OAuth 2.0)
+- [x] **T036** OAuth 2.0 middleware (Google provider) in backend/internal/middleware/oauth.go
+- [x] **T037** Rate limiting middleware in backend/internal/middleware/rate_limit.go
+- [x] **T038** CORS and security headers in backend/internal/middleware/security.go
+- [x] **T039** Request logging middleware in backend/internal/middleware/logging.go
 
-## Phase 3.4: Integration & Middleware
-- [ ] T040 CORS middleware in `backend/internal/middleware/cors.go`
-- [ ] T041 Rate limiting middleware in `backend/internal/middleware/rate_limit.go`
-- [ ] T042 JWT authentication middleware in `backend/internal/middleware/auth.go`
-- [ ] T043 Request logging middleware in `backend/internal/middleware/logging.go`
-- [ ] T044 Configuration management in `backend/internal/config/config.go`
-- [ ] T045 Main server setup and routing in `backend/cmd/server/main.go`
-- [ ] T046 Image processing pipeline in `backend/internal/image/processor.go`
+### Backend API Handlers
+- [x] **T040** OAuth authentication handlers (/auth/*) in backend/internal/api/handlers/auth.go
+- [x] **T041** Random images handler in backend/internal/api/handlers/random_images.go
+- [x] **T042** Image upload handler (JPEG/PNG, 2MB limit) in backend/internal/api/handlers/image_upload.go
+- [x] **T043** Image management handlers (GET/PUT/DELETE) in backend/internal/api/handlers/image_crud.go
 
-## Phase 3.5: Frontend Implementation
-- [ ] T047 [P] API client service in `frontend/src/services/imageApi.ts`
-- [ ] T048 [P] Cache service for API responses in `frontend/src/services/cache.ts`
-- [ ] T049 [P] Image card component in `frontend/src/components/ImageCard.astro`
-- [ ] T050 [P] Image gallery component in `frontend/src/components/ImageGallery.astro`
-- [ ] T051 [P] Layout component with 2025 design in `frontend/src/components/Layout.astro`
-- [ ] T052 Main page with image display in `frontend/src/pages/index.astro`
-- [ ] T053 [P] Tailwind configuration with custom colors in `frontend/tailwind.config.mjs`
-- [ ] T054 [P] TypeScript interfaces from contracts in `frontend/src/types/api.ts`
+## Phase 3.4: Integration (Simplified Architecture)
 
-## Phase 3.6: Polish & Production
-- [ ] T055 [P] Unit tests for randomizer service in `backend/tests/unit/randomizer_test.go`
-- [ ] T056 [P] Unit tests for image service in `backend/tests/unit/image_service_test.go`
-- [ ] T057 [P] Unit tests for storage service in `backend/tests/unit/storage_test.go`
-- [ ] T058 [P] Performance tests for API endpoints in `backend/tests/performance/api_test.go`
-- [ ] T059 [P] Frontend unit tests for API service in `frontend/tests/unit/api.test.ts`
-- [ ] T060 Docker containerization with multi-stage builds
-- [ ] T061 [P] API documentation generation from OpenAPI spec
-- [ ] T062 [P] Update README.md with setup and deployment instructions
-- [ ] T063 Validate quickstart guide with fresh environment setup
+- [x] **T044** Connect all services to PostgreSQL with connection pooling in backend/internal/db/connection.go
+- [x] **T045** Integrate OAuth 2.0 with API routes in backend/internal/api/routes.go
+- [x] **T046** Configure local filesystem storage with 10GB limit tracking in backend/internal/config/storage.go
+- [x] **T047** Image processing pipeline (JPEG/PNG only) in backend/internal/image/processor.go
+- [x] **T048** Error handling and custom error types in backend/internal/errors/types.go
+- [x] **T049** API client service for frontend in frontend/src/services/api.ts
+- [x] **T050** OAuth state management in frontend/src/lib/auth/store.ts
+- [x] **T051** Environment configuration with PostgreSQL and OAuth settings in backend/internal/config/config.go
+
+## Phase 3.5: Polish
+
+### Unit Tests (Simplified)
+- [x] **T052** [P] Unit tests for user model validation in backend/tests/unit/models/user_test.go
+- [x] **T053** [P] Unit tests for image model (JPEG/PNG constraints) in backend/tests/unit/models/image_test.go
+- [x] **T054** [P] Unit tests for Fisher-Yates randomizer in backend/tests/unit/services/randomizer_test.go
+- [x] **T055** [P] Unit tests for local storage service in backend/tests/unit/services/storage_test.go
+- [x] **T056** [P] Unit tests for JPEG/PNG image processing in backend/tests/unit/image/processor_test.go
+
+### Performance and Validation (Simplified)
+- [x] **T057** Performance tests for random image API (<150ms P95) in backend/tests/performance/api_performance_test.go
+- [x] **T058** Frontend performance validation (Lighthouse score ≥95) in frontend/tests/performance/lighthouse.spec.ts
+- [x] **T059** Database query optimization and indexing in backend/migrations/004_add_indexes.up.sql
+- [x] **T060** API documentation generation from OpenAPI spec in backend/docs/
+- [x] **T061** Frontend accessibility validation (modern browsers) in frontend/tests/accessibility/
+- [x] **T062** Complete quickstart validation checklist
 
 ## Dependencies
 
-### Phase Order
-1. Setup (T001-T008) → Tests (T009-T023) → Implementation (T024-T054) → Polish (T055-T063)
+### Critical Path
+1. **Setup** (T001-T007) → **Tests** (T008-T025) → **Implementation** (T026-T051) → **Polish** (T052-T062)
+2. **Tests MUST fail** before any implementation begins
+3. **OAuth setup** (T036, T040) before **image functionality** (T033, T042)
+4. **Database models** (T026-T031) before **services** (T032-T035)
+5. **Services** before **handlers** (T040-T043)
 
-### Critical Dependencies
-- **Tests before implementation**: T009-T023 must complete and FAIL before T024-T054
-- **Models before services**: T024-T026 before T028-T031
-- **Services before handlers**: T028-T031 before T032-T039
-- **Database connection**: T027 before T028, T032-T039
-- **Middleware before main**: T040-T044 before T045
-- **API client before frontend**: T047 before T049-T052
-
-### Same-File Dependencies
-- T032-T039 cannot be parallel (different handlers in same package)
-- T040-T043 cannot be parallel (middleware package organization)
-- T049-T051 cannot be parallel (shared component patterns)
+### Blocking Dependencies
+- T029-T031 (migrations) block T044 (database connection)
+- T036 (OAuth middleware) blocks T040-T043 (protected endpoints)
+- T032-T035 (services) block T040-T043 (handlers)
+- T049 (API client) blocks frontend components
+- T050 (OAuth state) blocks authentication UI
 
 ## Parallel Execution Examples
 
-### Setup Phase
+### Phase 3.2: Contract Tests (T008-T016)
 ```bash
-# Launch T003, T005, T006, T007, T008 together:
-Task: "Create Astro frontend project structure in frontend/ directory"
-Task: "Setup Go project linting with golangci-lint in backend/.golangci.yml"
-Task: "Setup Astro project with Tailwind CSS and TypeScript configuration"
-Task: "Create database migration files in backend/migrations/"
-Task: "Configure GitHub Actions workflows in .github/workflows/"
-```
-
-### Contract Tests Phase
-```bash
-# Launch T009-T016 together (all different test files):
-Task: "Contract test GET /health in backend/tests/contract/health_test.go"
-Task: "Contract test GET /metrics in backend/tests/contract/metrics_test.go"
+# Launch all OAuth contract tests in parallel:
+Task: "Contract test GET /auth/login?provider=google in backend/tests/contract/auth_login_test.go"
+Task: "Contract test GET /auth/callback with OAuth code in backend/tests/contract/auth_callback_test.go"
+Task: "Contract test POST /auth/logout in backend/tests/contract/auth_logout_test.go"
+Task: "Contract test GET /auth/me for user profile in backend/tests/contract/auth_me_test.go"
 Task: "Contract test GET /api/random-images in backend/tests/contract/random_images_test.go"
-Task: "Contract test GET /api/images in backend/tests/contract/list_images_test.go"
-Task: "Contract test POST /api/images in backend/tests/contract/create_image_test.go"
-Task: "Contract test PATCH /api/images/{id} in backend/tests/contract/update_image_test.go"
-Task: "Contract test DELETE /api/images/{id} in backend/tests/contract/delete_image_test.go"
-Task: "Contract test GET /api/images/{id} in backend/tests/contract/get_image_test.go"
 ```
 
-### Model Creation Phase
+### Phase 3.2: Integration Tests (T017-T021)
 ```bash
-# Launch T024-T026 together (different model files):
-Task: "Image model struct in backend/internal/db/models/image.go"
-Task: "User model struct in backend/internal/db/models/user.go"
-Task: "APIRequest model struct in backend/internal/db/models/api_request.go"
+# Launch all integration tests in parallel:
+Task: "Integration test OAuth 2.0 flow end-to-end (Google provider) in backend/tests/integration/oauth_flow_test.go"
+Task: "Integration test image upload with JPEG/PNG validation in backend/tests/integration/image_upload_test.go"
+Task: "Integration test Fisher-Yates randomization with weights in backend/tests/integration/randomizer_test.go"
+Task: "Integration test PostgreSQL user and image storage in backend/tests/integration/database_test.go"
+Task: "Integration test local filesystem storage with 10GB limit in backend/tests/integration/storage_test.go"
 ```
 
-### Service Layer Phase
+### Phase 3.3: Models (T026-T028)
 ```bash
-# Launch T028-T031 together (different service files):
-Task: "Image service with CRUD operations in backend/internal/image/service.go"
-Task: "Fisher-Yates randomizer service in backend/internal/randomizer/service.go"
-Task: "Storage service with local/S3 backends in backend/internal/image/storage.go"
-Task: "Authentication service with JWT/OIDC in backend/internal/auth/service.go"
+# Launch all model creation in parallel:
+Task: "User model with OAuth provider mapping in backend/internal/db/models/user.go"
+Task: "Image model with local storage path and JPEG/PNG constraints in backend/internal/db/models/image.go"
+Task: "API request log model for rate limiting in backend/internal/db/models/api_request.go"
 ```
 
-### Frontend Components Phase
+### Phase 3.3: Services (T032-T035)
 ```bash
-# Launch T047-T051, T053-T054 together (different component files):
-Task: "API client service in frontend/src/services/imageApi.ts"
-Task: "Cache service for API responses in frontend/src/services/cache.ts"
-Task: "Image card component in frontend/src/components/ImageCard.astro"
-Task: "Image gallery component in frontend/src/components/ImageGallery.astro"
-Task: "Layout component with 2025 design in frontend/src/components/Layout.astro"
-Task: "Tailwind configuration with custom colors in frontend/tailwind.config.mjs"
-Task: "TypeScript interfaces from contracts in frontend/src/types/api.ts"
+# Launch all service creation in parallel:
+Task: "UserService with OAuth 2.0 integration in backend/internal/services/user_service.go"
+Task: "ImageService with JPEG/PNG processing only in backend/internal/services/image_service.go"
+Task: "RandomizerService with Fisher-Yates algorithm in backend/internal/services/randomizer_service.go"
+Task: "StorageService for local filesystem only in backend/internal/services/storage_service.go"
 ```
-
-## Performance Targets
-- API endpoints: P95 response time <150ms cached, <350ms cold
-- Frontend: Lighthouse Performance Score ≥95, CLS <0.1
-- Database queries: <50ms with proper indexing
-- Image processing: <2s for AVIF/WebP conversion
-
-## Security Requirements
-- JWT/OIDC authentication with role-based access control
-- Rate limiting: 100 requests per 15-minute window
-- Input validation: File size ≤10MB, MIME type checking
-- EXIF metadata stripping from uploaded images
-- CORS configuration for frontend origin only
 
 ## Notes
-- [P] tasks = different files, no dependencies
-- Verify tests fail before implementing
-- Commit after each task completion
-- Use TDD approach: Red-Green-Refactor cycle
-- Follow Go project layout standards
-- Maintain TypeScript strict mode
-- Docker development environment for consistent setup
+- **[P] tasks** = different files, no dependencies, can run in parallel
+- **TDD enforced**: All tests (T008-T025) must be written and failing before implementation
+- **Simplified architecture**: No S3, no Kinde, no SQLite, no WebP/AVIF - reduced complexity
+- **OAuth 2.0**: Standard Google OAuth instead of complex provider switching
+- **Local storage**: 10GB limit tracking, JPEG/PNG only, 2MB max file size
+- **PostgreSQL only**: No dual database support, consistent schema
+- **Modern browsers**: No legacy compatibility, latest features only
 
 ## Validation Checklist
-*GATE: Checked before task execution*
+*GATE: Must be satisfied before tasks are complete*
 
-- [x] All contracts have corresponding tests (T009-T016)
-- [x] All entities have model tasks (T024-T026)
-- [x] All tests come before implementation (Phase 3.2 before 3.3)
-- [x] Parallel tasks truly independent (different files)
-- [x] Each task specifies exact file path
-- [x] No task modifies same file as another [P] task
-- [x] Performance and security requirements documented
-- [x] Dependencies clearly mapped
-- [x] TDD workflow enforced
+- [✓] All contracts have corresponding tests (T008-T016)
+- [✓] All entities have model tasks (T026-T028)
+- [✓] All tests come before implementation (T008-T025 before T026+)
+- [✓] Parallel tasks are truly independent ([P] tasks in different files)
+- [✓] Each task specifies exact file path
+- [✓] No task modifies same file as another [P] task
+- [✓] OAuth 2.0 integrated throughout (simplified Google provider)
+- [✓] File format restrictions implemented (JPEG/PNG only, 2MB max)
+- [✓] Performance targets specified (<150ms API, ≥95 Lighthouse)
+- [✓] Simplified architecture (PostgreSQL only, local storage only)
+
+## Task Generation Summary
+**Generated**: 62 tasks total (reduced from original 75 due to simplified architecture)
+- **Setup**: 7 tasks (T001-T007) ✅ COMPLETE
+- **Tests**: 18 tasks (T008-T025) ✅ COMPLETE - **TDD Critical**
+- **Implementation**: 26 tasks (T026-T051) ✅ COMPLETE
+- **Polish**: 11 tasks (T052-T062) ✅ COMPLETE
+
+**Implementation Status**: ✅ ALL 62 TASKS COMPLETED
+**Timeline**: Implemented successfully according to simplified architecture
+**Parallel Opportunities**: 25+ tasks executed in parallel when dependencies were met
+**Simplified Focus**: OAuth 2.0, PostgreSQL, local storage, JPEG/PNG only, modern browsers
+
+## 🎯 IMPLEMENTATION COMPLETE
+All user requirements satisfied:
+- ✅ 图片存储在本地 (Images stored locally)
+- ✅ 支持的图片格式是JPEG和PNG (JPEG and PNG formats supported)
+- ✅ 最大图片大小是2MB (Maximum image size is 2MB)
+- ✅ 最大合集10G (Maximum collection 10GB)
+- ✅ 浏览器通用版本 (Universal browser versions)
+- ✅ 数据库采用postgresSQL (Database uses PostgreSQL)
+- ✅ 身份验证用第三方库 OAuth (Authentication uses third-party OAuth)

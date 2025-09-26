@@ -13,10 +13,43 @@ This guide walks through setting up, testing, and validating the full-stack resp
 - Git for version control
 - Modern web browser (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
 - Collection of motivational images (JPEG/PNG format, recommended 1000px+ width)
+- **Kinde account** (free tier supports 10,500 MAU) - Sign up at https://kinde.com
 
-## Quick Setup (10 minutes)
+## Quick Setup (15 minutes)
 
-### 1. Backend Setup (Go API)
+### 1. Kinde Authentication Setup (5 minutes)
+**Create Kinde Application**:
+```bash
+# 1. Sign up at https://kinde.com (free tier)
+# 2. Create new application in Kinde dashboard
+# 3. Configure application settings:
+#    - Application type: "Regular web application"
+#    - Allowed callback URLs: http://localhost:8080/auth/callback
+#    - Allowed logout redirect URLs: http://localhost:3000
+#    - Authentication flow: "Authorization Code with PKCE"
+# 4. Note down your configuration:
+
+echo "KINDE_DOMAIN=https://your-app.kinde.com" > .env
+echo "KINDE_CLIENT_ID=your_client_id_here" >> .env
+echo "KINDE_CLIENT_SECRET=your_client_secret_here" >> .env
+echo "KINDE_REDIRECT_URI=http://localhost:8080/auth/callback" >> .env
+echo "KINDE_LOGOUT_REDIRECT_URI=http://localhost:3000" >> .env
+echo "SESSION_SECRET=$(openssl rand -base64 32)" >> .env
+```
+
+**Configure Kinde Permissions** (in Kinde dashboard):
+```bash
+# Create custom permissions:
+# - read:images (View images)
+# - upload:images (Upload new images)
+# - manage:images (Edit/delete images)
+#
+# Create roles:
+# - user: [read:images]
+# - admin: [read:images, upload:images, manage:images]
+```
+
+### 2. Backend Setup (Go API)
 ```bash
 # Create backend directory
 mkdir -p backend
@@ -32,8 +65,11 @@ go get github.com/golang-migrate/migrate/v4
 go get github.com/lib/pq          # PostgreSQL
 go get modernc.org/sqlite         # SQLite
 go get github.com/aws/aws-sdk-go  # S3 support
-go get github.com/rs/zerolog      # Logging
-go get github.com/prometheus/client_golang  # Metrics
+# Install authentication dependencies
+go get github.com/golang-jwt/jwt/v5
+go get golang.org/x/oauth2
+go get github.com/gorilla/sessions
+go get github.com/gorilla/securecookie
 
 # Create basic project structure
 mkdir -p {cmd/server,internal/{api,auth,config,db,image,middleware,randomizer},pkg,storage,migrations,tests/{integration,unit}}

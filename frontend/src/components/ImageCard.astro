@@ -16,13 +16,16 @@ const {
   showTags = false,
   showMetadata = false,
   lazyLoad = true,
-  className = ''
+  className = '',
 } = Astro.props;
 
 // Generate responsive image sizes
 const getSrcSet = (storagePath: string) => {
-  const baseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080';
-  const imagePath = storagePath.startsWith('/') ? storagePath : `/${storagePath}`;
+  const baseUrl =
+    import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const imagePath = storagePath.startsWith('/')
+    ? storagePath
+    : `/${storagePath}`;
 
   // For now, return single image URL
   // In production, you might have different sizes
@@ -41,13 +44,15 @@ const formatFileSize = (bytes: number) => {
 };
 
 // Parse tags
-const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+const tags = image.tags
+  ? image.tags
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(Boolean)
+  : [];
 ---
 
-<article
-  class={`image-card ${className}`}
-  data-image-id={image.id}
->
+<article class={`image-card ${className}`} data-image-id={image.id}>
   <div class="image-container">
     <img
       src={getSrcSet(image.storage_path)}
@@ -60,73 +65,87 @@ const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Bo
       data-testid="image"
     />
 
-    {showMetadata && (
-      <div class="metadata-overlay">
-        <div class="metadata-item">
-          <span class="metadata-label">Size:</span>
-          <span class="metadata-value">{formatFileSize(image.file_size)}</span>
+    {
+      showMetadata && (
+        <div class="metadata-overlay">
+          <div class="metadata-item">
+            <span class="metadata-label">Size:</span>
+            <span class="metadata-value">
+              {formatFileSize(image.file_size)}
+            </span>
+          </div>
+          {image.width && image.height && (
+            <div class="metadata-item">
+              <span class="metadata-label">Dimensions:</span>
+              <span class="metadata-value">
+                {image.width} × {image.height}
+              </span>
+            </div>
+          )}
+          {image.aspect_ratio && (
+            <div class="metadata-item">
+              <span class="metadata-label">Aspect:</span>
+              <span class="metadata-value">
+                {image.aspect_ratio.toFixed(2)}
+              </span>
+            </div>
+          )}
         </div>
-        {image.width && image.height && (
-          <div class="metadata-item">
-            <span class="metadata-label">Dimensions:</span>
-            <span class="metadata-value">{image.width} × {image.height}</span>
-          </div>
-        )}
-        {image.aspect_ratio && (
-          <div class="metadata-item">
-            <span class="metadata-label">Aspect:</span>
-            <span class="metadata-value">{image.aspect_ratio.toFixed(2)}</span>
-          </div>
-        )}
-      </div>
-    )}
+      )
+    }
   </div>
 
   <div class="content">
-    {showTitle && image.title && (
-      <h3 class="title" data-testid="image-title">
-        {image.title}
-      </h3>
-    )}
+    {
+      showTitle && image.title && (
+        <h3 class="title" data-testid="image-title">
+          {image.title}
+        </h3>
+      )
+    }
 
     <p class="alt-text" data-testid="image-description">
       {image.alt}
     </p>
 
-    {showTags && tags.length > 0 && (
-      <div class="tags" data-testid="image-tags">
-        {tags.map((tag) => (
-          <span key={tag} class="tag">
-            {tag}
-          </span>
-        ))}
-      </div>
-    )}
+    {
+      showTags && tags.length > 0 && (
+        <div class="tags" data-testid="image-tags">
+          {tags.map(tag => (
+            <span key={tag} class="tag">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )
+    }
 
-    {showMetadata && (
-      <div class="metadata">
-        <div class="metadata-row">
-          <span class="metadata-label">Format:</span>
-          <span class="metadata-value">{image.mime_type}</span>
+    {
+      showMetadata && (
+        <div class="metadata">
+          <div class="metadata-row">
+            <span class="metadata-label">Format:</span>
+            <span class="metadata-value">{image.mime_type}</span>
+          </div>
+          <div class="metadata-row">
+            <span class="metadata-label">Weight:</span>
+            <span class="metadata-value">{image.weight}/10</span>
+          </div>
+          <div class="metadata-row">
+            <span class="metadata-label">Status:</span>
+            <span class={`metadata-value status-${image.status}`}>
+              {image.status}
+            </span>
+          </div>
+          <div class="metadata-row">
+            <span class="metadata-label">Created:</span>
+            <span class="metadata-value">
+              {new Date(image.created_at).toLocaleDateString()}
+            </span>
+          </div>
         </div>
-        <div class="metadata-row">
-          <span class="metadata-label">Weight:</span>
-          <span class="metadata-value">{image.weight}/10</span>
-        </div>
-        <div class="metadata-row">
-          <span class="metadata-label">Status:</span>
-          <span class={`metadata-value status-${image.status}`}>
-            {image.status}
-          </span>
-        </div>
-        <div class="metadata-row">
-          <span class="metadata-label">Created:</span>
-          <span class="metadata-value">
-            {new Date(image.created_at).toLocaleDateString()}
-          </span>
-        </div>
-      </div>
-    )}
+      )
+    }
   </div>
 </article>
 
@@ -304,7 +323,7 @@ const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Bo
   document.addEventListener('DOMContentLoaded', () => {
     const images = document.querySelectorAll('.image-card img');
 
-    images.forEach((img) => {
+    images.forEach(img => {
       const imageElement = img as HTMLImageElement;
 
       // Add loading indicator
@@ -321,10 +340,12 @@ const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Bo
         // Dispatch custom event for analytics
         const loadEvent = new CustomEvent('imageLoaded', {
           detail: {
-            imageId: imageElement.closest('.image-card')?.getAttribute('data-image-id'),
+            imageId: imageElement
+              .closest('.image-card')
+              ?.getAttribute('data-image-id'),
             src: imageElement.src,
-            loadTime: performance.now()
-          }
+            loadTime: performance.now(),
+          },
         });
         document.dispatchEvent(loadEvent);
       });
@@ -341,10 +362,12 @@ const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Bo
         // Dispatch error event
         const errorEvent = new CustomEvent('imageError', {
           detail: {
-            imageId: imageElement.closest('.image-card')?.getAttribute('data-image-id'),
+            imageId: imageElement
+              .closest('.image-card')
+              ?.getAttribute('data-image-id'),
             src: imageElement.src,
-            error: 'Failed to load'
-          }
+            error: 'Failed to load',
+          },
         });
         document.dispatchEvent(errorEvent);
       });
@@ -353,27 +376,30 @@ const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Bo
 
   // Intersection Observer for lazy loading enhancement
   if ('IntersectionObserver' in window) {
-    const imageObserver = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const img = entry.target as HTMLImageElement;
+    const imageObserver = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target as HTMLImageElement;
 
-          // Add priority loading for visible images
-          if (img.loading === 'lazy') {
-            img.loading = 'eager';
+            // Add priority loading for visible images
+            if (img.loading === 'lazy') {
+              img.loading = 'eager';
+            }
+
+            // Unobserve after loading starts
+            imageObserver.unobserve(img);
           }
-
-          // Unobserve after loading starts
-          imageObserver.unobserve(img);
-        }
-      });
-    }, {
-      rootMargin: '50px 0px',
-      threshold: 0.1
-    });
+        });
+      },
+      {
+        rootMargin: '50px 0px',
+        threshold: 0.1,
+      }
+    );
 
     // Observe all lazy-loaded images
-    document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+    document.querySelectorAll('img[loading="lazy"]').forEach(img => {
       imageObserver.observe(img);
     });
   }

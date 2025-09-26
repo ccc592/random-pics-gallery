@@ -1,28 +1,30 @@
+
 # Implementation Plan: Responsive Random Motivational Image Website
 
-**Branch**: `001-responsive-random-motivational` | **Date**: 2025-09-25 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-responsive-random-motivational` | **Date**: 2025-09-26 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-responsive-random-motivational/spec.md`
+**User Requirements**: Add login button and image upload functionality to existing random image display website
 
 ## Execution Flow (/plan command scope)
 ```
 1. Load feature spec from Input path
-   → ✅ Feature spec loaded: Random motivational image display system
+   → If not found: ERROR "No feature spec at {path}"
 2. Fill Technical Context (scan for NEEDS CLARIFICATION)
-   → ✅ Project Type: web (full-stack with Go backend + Astro frontend)
-   → ✅ Structure Decision: Option 2 (Web application with backend/frontend)
+   → Detect Project Type from context (web=frontend+backend, mobile=app+api)
+   → Set Structure Decision based on project type
 3. Fill the Constitution Check section based on the content of the constitution document.
-   → ✅ Constitution requirements analyzed (template-based)
 4. Evaluate Constitution Check section below
-   → ✅ No violations identified for full-stack approach
-   → ✅ Progress Tracking: Initial Constitution Check PASS
+   → If violations exist: Document in Complexity Tracking
+   → If no justification possible: ERROR "Simplify approach first"
+   → Update Progress Tracking: Initial Constitution Check
 5. Execute Phase 0 → research.md
-   → ✅ All NEEDS CLARIFICATION resolved via comprehensive architecture update
-6. Execute Phase 1 → contracts, data-model.md, quickstart.md, CLAUDE.md
-   → ✅ Design artifacts updated for Go backend + API architecture
+   → If NEEDS CLARIFICATION remain: ERROR "Resolve unknowns"
+6. Execute Phase 1 → contracts, data-model.md, quickstart.md, agent-specific template file (e.g., `CLAUDE.md` for Claude Code, `.github/copilot-instructions.md` for GitHub Copilot, `GEMINI.md` for Gemini CLI, `QWEN.md` for Qwen Code or `AGENTS.md` for opencode).
 7. Re-evaluate Constitution Check section
-   → ✅ Post-Design Constitution Check PASS
-8. Plan Phase 2 → Task generation approach described
-9. ✅ STOP - Ready for /tasks command
+   → If new violations: Refactor design, return to Phase 1
+   → Update Progress Tracking: Post-Design Constitution Check
+8. Plan Phase 2 → Describe task generation approach (DO NOT create tasks.md)
+9. STOP - Ready for /tasks command
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
@@ -30,41 +32,39 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-Primary requirement: Display 3-5 randomly selected motivational images per session with modern 2025 design aesthetic, responsive layout, and sub-2-second load times.
-
-Technical approach: Full-stack architecture with Go 1.23+ backend (Gin framework) providing REST API for image management and randomization, Astro frontend consuming API endpoints, pluggable storage (local FS or S3-compatible), comprehensive security and observability, deployment to Fly.io/Cloud Run with Docker containerization.
+Responsive website displaying 3-5 random motivational images with modern 2025 aesthetic. User has requested addition of authentication system (login button) and image upload functionality to allow users to manage their personal collection. Technical approach: Go backend with Gin framework providing REST API, PostgreSQL/SQLite database, pluggable storage (local/S3), Astro frontend with TypeScript, JWT authentication, and comprehensive security.
 
 ## Technical Context
-**Backend**: Go 1.23+, Gin framework, SQLite/Postgres, pluggable storage (local FS or S3)
-**Frontend**: Astro 4.x with TypeScript, Tailwind CSS, API consumption with 5-15min caching
-**APIs**: RESTful endpoints - GET /api/random-images, GET /api/images, POST/PATCH/DELETE /api/images
-**Storage**: Local filesystem (./storage/images) or S3-compatible (MinIO/AWS) selected by ENV
-**Database**: SQLite (development/local) or Postgres (production) for image metadata
-**Testing**: Go standard testing + Testify, Playwright for E2E, API contract tests
-**Target Platform**: Containerized Go backend (Fly.io/Cloud Run) + modern web browsers
-**Project Type**: web (full-stack API backend with frontend client)
-**Performance Goals**: API P95 <150ms cached/<350ms cold, Frontend CLS <0.1, Lighthouse ≥95
-**Constraints**: JWT/OIDC auth, rate limiting, CORS, image validation, EXIF stripping, accessibility
-**Scale/Scope**: Multi-user API, admin image management, weighted randomization, full observability
+**Language/Version**: Go 1.23+, TypeScript 4.x+, Astro 4.x
+**Storage**: PostgreSQL database (required), local filesystem for image storage only
+**Primary Dependencies**: Gin framework, golang-migrate, OAuth libraries, PostgreSQL driver, Astro, Tailwind CSS
+**Testing**: Go standard testing + Testify, Playwright (E2E)
+**Target Platform**: Linux server deployment (Fly.io/Cloud Run), modern browsers
+**Project Type**: web - full-stack application with Go backend + Astro frontend
+**Performance Goals**: API P95 <150ms cached/<350ms cold, Frontend Lighthouse ≥95, FCP ≤2s
+**Constraints**: JPEG/PNG formats only, 2MB max file size, 10GB total collection, OAuth authentication, rate limiting, CORS
+**Scale/Scope**: Personal image collections with 10GB storage limit, authenticated user access via OAuth
+**Arguments**: 图片存储在本地，支持的图片格式是JPEG和PNG，最大图片大小是2MB，最大合集10G，浏览器通用版本，数据库采用postgresSQL，身份验证用第三方库 OAuth
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Analysis**: Constitution template is generic and not project-specific. No constitutional violations identified for the full-stack approach:
-- ✅ API-first design promotes separation of concerns and testability
-- ✅ Go backend provides performance, type safety, and excellent tooling
-- ✅ Pluggable storage architecture maintains flexibility
-- ✅ Comprehensive observability (logs, metrics, tracing) ensures debuggability
-- ✅ Security-first approach with auth, rate limiting, and input validation
+**API-First Design**: ✅ Go backend provides REST API, frontend consumes via TypeScript client
+**Security-First**: ✅ OAuth authentication, rate limiting, CORS, input validation, file type restrictions (JPEG/PNG only)
+**Performance Standards**: ✅ P95 <150ms cached, <350ms cold, database queries <50ms
+**Test-First Development**: ✅ TDD approach with contract tests, integration tests, E2E tests
+**Pluggable Architecture**: ✅ Simplified approach - PostgreSQL only, local storage only (reduces complexity)
+
+**Status**: PASS - No constitutional violations detected
 
 ## Project Structure
 
 ### Documentation (this feature)
 ```
-specs/001-responsive-random-motivational/
+specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
 ├── research.md          # Phase 0 output (/plan command)
-├── data-model.md        # Phase 1 output (/plan component)
+├── data-model.md        # Phase 1 output (/plan command)
 ├── quickstart.md        # Phase 1 output (/plan command)
 ├── contracts/           # Phase 1 output (/plan command)
 └── tasks.md             # Phase 2 output (/tasks command - NOT created by /plan)
@@ -72,76 +72,55 @@ specs/001-responsive-random-motivational/
 
 ### Source Code (repository root)
 ```
-# Option 2: Web application (backend + frontend)
+# Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
+
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# Option 2: Web application (when "frontend" + "backend" detected)
 backend/
-├── cmd/
-│   └── server/          # Main application entry point
-├── internal/
-│   ├── api/             # HTTP handlers and routes
-│   ├── auth/            # JWT/OIDC authentication
-│   ├── config/          # Configuration management
-│   ├── db/              # Database models and migrations
-│   ├── image/           # Image processing and storage
-│   ├── middleware/      # Rate limiting, CORS, logging
-│   └── randomizer/      # Fisher-Yates shuffle with weights
-├── pkg/                 # Public packages
-├── storage/             # Local image storage (if not S3)
-├── migrations/          # Database schema migrations
-├── tests/               # Go tests
-│   ├── integration/
-│   └── unit/
-├── Dockerfile
-├── go.mod
-└── go.sum
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
 
 frontend/
 ├── src/
-│   ├── components/      # Astro components
-│   │   ├── ImageGallery.astro
-│   │   ├── ImageCard.astro
-│   │   └── Layout.astro
-│   ├── services/        # API client services
-│   │   ├── imageApi.ts
-│   │   └── cache.ts
-│   ├── styles/          # Tailwind customizations
-│   │   └── global.css
-│   └── pages/           # Astro pages
-│       └── index.astro
-├── tests/
-│   ├── unit/
-│   └── e2e/             # Playwright tests
-├── astro.config.mjs
-├── tailwind.config.mjs
-└── package.json
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
 
-.github/
-└── workflows/
-    ├── backend.yml       # Go API CI/CD
-    └── frontend.yml      # Astro frontend CI/CD
+# Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
 
-docker-compose.yml       # Local development
+ios/ or android/
+└── [platform-specific structure]
 ```
 
-**Structure Decision**: Option 2 (Web application) - Go backend API with Astro frontend client
+**Structure Decision**: Option 2 (Web application) - Go backend + Astro frontend architecture
 
 ## Phase 0: Outline & Research
 1. **Extract unknowns from Technical Context** above:
-   - Go backend architecture with Gin framework and pluggable storage
-   - Fisher-Yates randomization with weights and seed reproducibility
-   - Image processing pipeline (AVIF/WebP/JPEG with EXIF stripping)
-   - Security implementation (JWT/OIDC, rate limiting, CORS)
-   - Observability stack (zerolog, Prometheus, OpenTelemetry)
-   - Container deployment to Fly.io/Cloud Run
+   - For each NEEDS CLARIFICATION → research task
+   - For each dependency → best practices task
+   - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
    ```
-   Task: "Research Go 1.23 + Gin framework API patterns and middleware"
-   Task: "Find best practices for Go Fisher-Yates shuffle with weighted selection"
-   Task: "Research pluggable storage patterns (local FS vs S3) in Go"
-   Task: "Find JWT/OIDC authentication implementation in Go"
-   Task: "Research Go observability with zerolog + Prometheus + OpenTelemetry"
-   Task: "Find Docker containerization and Fly.io/Cloud Run deployment patterns"
-   Task: "Research Astro frontend consuming REST APIs with caching strategies"
+   For each unknown in Technical Context:
+     Task: "Research {unknown} for {feature context}"
+   For each technology choice:
+     Task: "Find best practices for {tech} in {domain}"
    ```
 
 3. **Consolidate findings** in `research.md` using format:
@@ -149,103 +128,104 @@ docker-compose.yml       # Local development
    - Rationale: [why chosen]
    - Alternatives considered: [what else evaluated]
 
-**Output**: research.md with all implementation approaches resolved
+**Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
 *Prerequisites: research.md complete*
 
 1. **Extract entities from feature spec** → `data-model.md`:
-   - Image: id, filename, alt, title, tags, weight, metadata, storage variants
-   - User: authentication, roles (admin/user), rate limiting state
-   - Session: API client caching, randomization seed, request tracking
-   - Storage: pluggable backend (local FS or S3), image processing pipeline
+   - Entity name, fields, relationships
+   - Validation rules from requirements
+   - State transitions if applicable
 
-2. **Generate API contracts** for Go REST endpoints:
-   - OpenAPI 3.0 specification for all endpoints
-   - Go struct definitions with JSON tags and validation
-   - TypeScript client interfaces for frontend consumption
-   - Error response schemas and HTTP status codes
-   - Output to `/contracts/` with both Go and TypeScript definitions
+2. **Generate API contracts** from functional requirements:
+   - For each user action → endpoint
+   - Use standard REST/GraphQL patterns
+   - Output OpenAPI/GraphQL schema to `/contracts/`
 
-3. **Generate contract tests** from API specifications:
-   - Go API integration tests for all endpoints
-   - Authentication and authorization test scenarios
-   - Image upload validation (MIME, size, EXIF stripping)
-   - Rate limiting and CORS behavior verification
-   - Fisher-Yates randomization correctness tests
+3. **Generate contract tests** from contracts:
+   - One test file per endpoint
+   - Assert request/response schemas
+   - Tests must fail (no implementation yet)
 
 4. **Extract test scenarios** from user stories:
-   - API client authentication flow
-   - Image randomization with different parameters (limit, tags, seed)
-   - Admin image management operations
-   - Frontend caching and refresh behavior
-   - Performance benchmarks (P95 <150ms cached, <350ms cold)
+   - Each story → integration test scenario
+   - Quickstart test = story validation steps
 
-5. **Update agent file incrementally**:
+5. **Update agent file incrementally** (O(1) operation):
    - Run `.specify/scripts/powershell/update-agent-context.ps1 -AgentType claude`
-   - Add Go, Gin, database, authentication, observability context
-   - Include API design patterns and security requirements
-   - Document deployment and containerization specifications
+     **IMPORTANT**: Execute it exactly as specified above. Do not add or remove any arguments.
+   - If exists: Add only NEW tech from current plan
+   - Preserve manual additions between markers
+   - Update recent changes (keep last 3)
    - Keep under 150 lines for token efficiency
+   - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, CLAUDE.md
+**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
 
-## Phase 2: Task Planning Approach
+## Phase 2: Task Planning Approach (Updated)
 *This section describes what the /tasks command will do - DO NOT execute during /plan*
 
-**Task Generation Strategy**:
+**Task Generation Strategy (Simplified Architecture)**:
 - Load `.specify/templates/tasks-template.md` as base
-- Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Backend API foundation → Go setup, Gin routes, middleware [P]
-- Database setup → migrations, models, queries [P]
-- Authentication system → JWT/OIDC integration, middleware
-- Image management → upload, processing, storage abstraction
-- Randomization service → Fisher-Yates with weights and seeds
-- Frontend integration → Astro API client, caching, UI components
-- Security hardening → rate limiting, CORS, validation
-- Observability → logging, metrics, tracing
-- Testing → API contract tests, E2E scenarios
-- Deployment → Docker, CI/CD, infrastructure
+- Generate tasks from simplified Phase 1 design docs (contracts, data model, quickstart)
+- Each OAuth endpoint → contract test task [P] (login, callback, logout, me)
+- Each image endpoint → contract test task [P] (get, upload, list, update, delete)
+- Simplified entities → model creation tasks [P] (User with OAuth, Image with local storage)
+- Each user story → integration test task with simplified constraints
+- Implementation tasks focus on single technologies (PostgreSQL only, local storage only)
 
-**Ordering Strategy**:
-- TDD order: API contracts and tests before implementation
-- Infrastructure first: Database, auth, storage abstraction
-- Core services: Image management, randomization, API endpoints
-- Security: Rate limiting, CORS, input validation
-- Frontend: API integration, caching, responsive UI
-- Observability: Logging, metrics, monitoring
-- Deployment: Containerization, CI/CD pipeline
+**Ordering Strategy (Simplified)**:
+- TDD order: Tests before implementation (unchanged)
+- Dependency order: OAuth models → Image models → Services → API handlers → UI
+- Simplified storage: Local filesystem setup before image services
+- Mark [P] for parallel execution (independent files, reduced complexity)
+- OAuth integration tasks grouped together
+- File upload tasks with JPEG/PNG validation grouped together
 
-**Estimated Output**: 35-40 numbered, ordered tasks in tasks.md
+**Estimated Output**: 35-45 numbered, ordered tasks in tasks.md (reduced from original 75 due to simplified architecture)
+
+**Key Simplifications**:
+- No S3/cloud storage tasks (local filesystem only)
+- No multi-database tasks (PostgreSQL only)
+- No multi-format image processing (JPEG/PNG only)
+- No Kinde-specific integration (standard OAuth 2.0 only)
+- No legacy browser compatibility tasks (modern browsers only)
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
 *These phases are beyond the scope of the /plan command*
 
-**Phase 3**: Task execution (/tasks command creates tasks.md)
-**Phase 4**: Implementation (execute tasks.md following constitutional principles)
+**Phase 3**: Task execution (/tasks command creates tasks.md)  
+**Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*No constitutional violations identified - section left empty*
+*Fill ONLY if Constitution Check has violations that must be justified*
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+
 
 ## Progress Tracking
 *This checklist is updated during execution flow*
 
 **Phase Status**:
-- [x] Phase 0: Research complete (/plan command)
-- [x] Phase 1: Design complete (/plan command)
-- [x] Phase 2: Task planning complete (/plan command - describe approach only)
+- [x] Phase 0: Research complete (/plan command) - Updated with simplified requirements
+- [x] Phase 1: Design complete (/plan command) - Updated data model and contracts
+- [x] Phase 2: Task planning complete (/plan command - simplified approach described)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
-- [x] Initial Constitution Check: PASS
-- [x] Post-Design Constitution Check: PASS
-- [x] All NEEDS CLARIFICATION resolved
-- [x] Complexity deviations documented (none)
+- [x] Initial Constitution Check: PASS (simplified approach reduces complexity)
+- [x] Post-Design Constitution Check: PASS (all requirements addressed)
+- [x] All NEEDS CLARIFICATION resolved (updated with user specifications)
+- [x] Complexity deviations documented (simplified architecture justified)
 
 ---
-*Based on Constitution template - See `.specify/memory/constitution.md`*
+*Based on Constitution v2.1.1 - See `/memory/constitution.md`*

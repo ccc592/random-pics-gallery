@@ -54,18 +54,77 @@ type ImageResponse struct {
 	UploadDate     time.Time       `json:"upload_date"`
 }
 
-// User represents an authenticated user
+// User represents an authenticated user with Kinde integration
 type User struct {
-	ID             uuid.UUID  `json:"id" db:"id"`
-	Email          string     `json:"email" db:"email" validate:"required,email,max=255"`
-	Username       *string    `json:"username,omitempty" db:"username" validate:"omitempty,max=100"`
-	Role           string     `json:"role" db:"role" validate:"oneof='user' 'admin'"`
-	JWTSubject     string     `json:"jwt_subject" db:"jwt_subject" validate:"required,max=255"`
-	LastLogin      *time.Time `json:"last_login,omitempty" db:"last_login"`
-	RateLimitReset *time.Time `json:"rate_limit_reset,omitempty" db:"rate_limit_reset"`
-	RateLimitCount int        `json:"rate_limit_count" db:"rate_limit_count"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	Email                string     `json:"email" db:"email" validate:"required,email,max=255"`
+	Username             *string    `json:"username,omitempty" db:"username" validate:"omitempty,max=100"`
+	DisplayName          *string    `json:"display_name,omitempty" db:"display_name" validate:"omitempty,max=255"`
+	AvatarURL            *string    `json:"avatar_url,omitempty" db:"avatar_url" validate:"omitempty,url"`
+	Role                 string     `json:"role" db:"role" validate:"oneof='user' 'admin'"`
+	KindeUserID          string     `json:"kinde_user_id" db:"kinde_user_id" validate:"required,max=255"`
+	KindeOrganizationID  *string    `json:"kinde_organization_id,omitempty" db:"kinde_organization_id" validate:"omitempty,max=255"`
+	EmailVerified        bool       `json:"email_verified" db:"email_verified"`
+	IsActive             bool       `json:"is_active" db:"is_active"`
+	LastLogin            *time.Time `json:"last_login,omitempty" db:"last_login"`
+	RateLimitReset       *time.Time `json:"rate_limit_reset,omitempty" db:"rate_limit_reset"`
+	RateLimitCount       int        `json:"rate_limit_count" db:"rate_limit_count"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// UserResponse represents the public API response for user profiles
+type UserResponse struct {
+	ID            uuid.UUID  `json:"id"`
+	Email         string     `json:"email"`
+	Username      *string    `json:"username,omitempty"`
+	DisplayName   *string    `json:"display_name,omitempty"`
+	AvatarURL     *string    `json:"avatar_url,omitempty"`
+	Role          string     `json:"role"`
+	EmailVerified bool       `json:"email_verified"`
+	LastLogin     *time.Time `json:"last_login,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+// KindeClaims represents JWT claims from Kinde authentication
+type KindeClaims struct {
+	Issuer         string                 `json:"iss"`
+	Subject        string                 `json:"sub"`
+	Audience       []string               `json:"aud"`
+	Email          string                 `json:"email,omitempty"`
+	EmailVerified  bool                   `json:"email_verified,omitempty"`
+	GivenName      string                 `json:"given_name,omitempty"`
+	FamilyName     string                 `json:"family_name,omitempty"`
+	Picture        string                 `json:"picture,omitempty"`
+	Organizations  []string               `json:"organizations,omitempty"`
+	Permissions    []string               `json:"permissions,omitempty"`
+	Roles          []string               `json:"roles,omitempty"`
+	ExpiresAt      time.Time              `json:"exp"`
+	IssuedAt       time.Time              `json:"iat"`
+	CustomClaims   map[string]interface{} `json:"-"`
+}
+
+// TokenResponse represents authentication token response
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	Scope        string `json:"scope,omitempty"`
+}
+
+// AuthCallback represents OAuth callback parameters
+type AuthCallback struct {
+	Code  string `json:"code" query:"code" validate:"required"`
+	State string `json:"state" query:"state" validate:"required"`
+}
+
+// AuthState represents OAuth state for CSRF protection
+type AuthState struct {
+	State            string  `json:"state"`
+	RedirectURI      string  `json:"redirect_uri,omitempty"`
+	OrganizationCode *string `json:"organization_code,omitempty"`
+	Timestamp        int64   `json:"timestamp"`
 }
 
 // RandomImagesRequest represents query parameters for GET /api/random-images
@@ -160,14 +219,28 @@ type RateLimitHeaders struct {
 	XRateLimitReset     int64 `header:"X-RateLimit-Reset"`
 }
 
-// JWTClaims represents JWT token claims structure
-type JWTClaims struct {
-	Subject  string    `json:"sub"`
-	Email    string    `json:"email,omitempty"`
-	Username string    `json:"username,omitempty"`
-	Role     string    `json:"role"`
-	IssuedAt time.Time `json:"iat"`
-	ExpiresAt time.Time `json:"exp"`
+// Deprecated: Use KindeClaims instead
+
+// KindeConfig represents Kinde authentication configuration
+type KindeConfig struct {
+	Domain              string `json:"domain" validate:"required,url"`
+	ClientID            string `json:"client_id" validate:"required"`
+	ClientSecret        string `json:"client_secret" validate:"required"`
+	RedirectURI         string `json:"redirect_uri" validate:"required,url"`
+	LogoutRedirectURI   string `json:"logout_redirect_uri" validate:"required,url"`
+	Audience            string `json:"audience,omitempty"`
+	Scope               string `json:"scope" default:"openid profile email"`
+	JWTIssuer           string `json:"jwt_issuer" validate:"required"`
+	JWTAudience         string `json:"jwt_audience,omitempty"`
+}
+
+// SessionConfig represents session management configuration
+type SessionConfig struct {
+	Secret       string `json:"secret" validate:"required,min=32"`
+	CookieName   string `json:"cookie_name" default:"session"`
+	SecureCookie bool   `json:"secure_cookie" default:"true"`
+	SameSite     string `json:"same_site" validate:"oneof='strict' 'lax' 'none'" default:"lax"`
+	MaxAge       int    `json:"max_age" default:"3600"` // 1 hour
 }
 
 // StorageConfig represents storage configuration
@@ -192,10 +265,11 @@ type DatabaseConfig struct {
 
 // ServerConfig represents server configuration
 type ServerConfig struct {
-	Port            int      `json:"port" default:"8080"`
-	Host            string   `json:"host" default:"0.0.0.0"`
-	AllowedOrigins  []string `json:"allowed_origins"`
-	JWTSecret       string   `json:"jwt_secret" validate:"required,min=32"`
-	RateLimitRPM    int      `json:"rate_limit_rpm" default:"100"`
-	MaxUploadSizeMB int      `json:"max_upload_size_mb" default:"10"`
+	Port               int           `json:"port" default:"8080"`
+	Host               string        `json:"host" default:"0.0.0.0"`
+	AllowedOrigins     []string      `json:"allowed_origins"`
+	Kinde              KindeConfig   `json:"kinde"`
+	Session            SessionConfig `json:"session"`
+	RateLimitRPM       int           `json:"rate_limit_rpm" default:"100"`
+	MaxUploadSizeMB    int           `json:"max_upload_size_mb" default:"10"`
 }
