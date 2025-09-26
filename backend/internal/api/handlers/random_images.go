@@ -147,8 +147,8 @@ func (h *RandomImagesHandler) applyFisherYatesSelection(images []models.Image, l
 		return []models.Image{}
 	}
 
-	// Use seed for reproducible randomization
-	rand.Seed(seed)
+	// Create a per-request RNG for thread-safe and reproducible randomization
+	rng := rand.New(rand.NewSource(seed))
 
 	// Create a copy to avoid modifying the original slice
 	imagesCopy := make([]models.Image, len(images))
@@ -164,11 +164,11 @@ func (h *RandomImagesHandler) applyFisherYatesSelection(images []models.Image, l
 
 		if totalWeight == 0 {
 			// If no weights, use uniform distribution
-			j := rand.Intn(i + 1)
+			j := rng.Intn(i + 1)
 			imagesCopy[i], imagesCopy[j] = imagesCopy[j], imagesCopy[i]
 		} else {
 			// Weighted selection
-			randWeight := rand.Intn(totalWeight)
+			randWeight := rng.Intn(totalWeight)
 			currentWeight := 0
 			selectedIndex := 0
 
