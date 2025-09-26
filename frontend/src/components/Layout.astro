@@ -1,0 +1,667 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  showHeader?: boolean;
+  showFooter?: boolean;
+  className?: string;
+}
+
+const {
+  title = 'Random Pics - Discover Beautiful Random Images',
+  description = 'Discover a curated collection of beautiful random images. Perfect for inspiration, backgrounds, or just browsing stunning photography.',
+  showHeader = true,
+  showFooter = true,
+  className = ''
+} = Astro.props;
+
+const currentYear = new Date().getFullYear();
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- SEO Meta Tags -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- Preconnect to API -->
+    <link rel="preconnect" href={import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080'} />
+
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#A8D5BA" />
+    <meta name="msapplication-TileColor" content="#A8D5BA" />
+
+    <title>{title}</title>
+  </head>
+
+  <body class={`layout ${className}`}>
+    {showHeader && (
+      <header class="site-header" role="banner">
+        <div class="header-container">
+          <div class="header-content">
+            <a href="/" class="logo" aria-label="Random Pics Home">
+              <div class="logo-icon">📸</div>
+              <div class="logo-text">
+                <span class="logo-title">Random Pics</span>
+                <span class="logo-subtitle">Beautiful Random Images</span>
+              </div>
+            </a>
+
+            <nav class="main-nav" role="navigation" aria-label="Main navigation">
+              <ul class="nav-list">
+                <li class="nav-item">
+                  <a href="/" class="nav-link" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>
+                    Home
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/gallery" class="nav-link" aria-current={Astro.url.pathname === '/gallery' ? 'page' : undefined}>
+                    Gallery
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="/about" class="nav-link" aria-current={Astro.url.pathname === '/about' ? 'page' : undefined}>
+                    About
+                  </a>
+                </li>
+              </ul>
+            </nav>
+
+            <div class="header-actions">
+              <button
+                class="refresh-btn"
+                onclick="window.location.reload()"
+                type="button"
+                aria-label="Refresh images"
+                title="Get new random images"
+              >
+                🔄
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    )}
+
+    <main class="main-content" role="main" id="main-content">
+      <slot />
+    </main>
+
+    {showFooter && (
+      <footer class="site-footer" role="contentinfo">
+        <div class="footer-container">
+          <div class="footer-content">
+            <div class="footer-section">
+              <h3 class="footer-title">Random Pics</h3>
+              <p class="footer-description">
+                Discover beautiful random images from our curated collection.
+                Perfect for inspiration, backgrounds, or just browsing.
+              </p>
+            </div>
+
+            <div class="footer-section">
+              <h4 class="footer-subtitle">Quick Links</h4>
+              <ul class="footer-links">
+                <li><a href="/" class="footer-link">Home</a></li>
+                <li><a href="/gallery" class="footer-link">Gallery</a></li>
+                <li><a href="/about" class="footer-link">About</a></li>
+              </ul>
+            </div>
+
+            <div class="footer-section">
+              <h4 class="footer-subtitle">Connect</h4>
+              <div class="footer-social">
+                <button class="social-btn" title="Share on Twitter" onclick="shareOnTwitter()">
+                  <span class="social-icon">🐦</span>
+                  <span class="sr-only">Share on Twitter</span>
+                </button>
+                <button class="social-btn" title="Copy link" onclick="copyLink()">
+                  <span class="social-icon">🔗</span>
+                  <span class="sr-only">Copy link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-bottom">
+            <p class="footer-copyright">
+              © {currentYear} Random Pics. All rights reserved.
+            </p>
+            <div class="footer-meta">
+              <a href="/privacy" class="footer-link">Privacy</a>
+              <a href="/terms" class="footer-link">Terms</a>
+              <span class="footer-divider">•</span>
+              <span class="footer-credits">Made with ❤️</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    )}
+
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+  </body>
+</html>
+
+<style>
+  /* Reset and base styles */
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream text-charcoal font-sans antialiased;
+    @apply min-h-screen flex flex-col;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Layout structure */
+  .layout {
+    @apply min-h-screen flex flex-col;
+  }
+
+  .main-content {
+    @apply flex-1 px-4 py-8;
+  }
+
+  /* Skip link for accessibility */
+  .skip-link {
+    @apply absolute -top-10 left-4 bg-sage text-white px-4 py-2 rounded;
+    @apply focus:top-4 transition-all duration-200 z-50;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50;
+  }
+
+  /* Header styles */
+  .site-header {
+    @apply bg-white/80 backdrop-blur-sm border-b border-sage/20 sticky top-0 z-40;
+    @apply shadow-sm;
+  }
+
+  .header-container {
+    @apply max-w-7xl mx-auto px-4 py-4;
+  }
+
+  .header-content {
+    @apply flex items-center justify-between flex-wrap gap-4;
+  }
+
+  .logo {
+    @apply flex items-center gap-3 no-underline;
+    @apply hover:scale-105 transition-transform duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2 rounded-lg p-1;
+  }
+
+  .logo-icon {
+    @apply text-2xl md:text-3xl;
+  }
+
+  .logo-text {
+    @apply flex flex-col;
+  }
+
+  .logo-title {
+    @apply text-xl md:text-2xl font-bold text-charcoal;
+  }
+
+  .logo-subtitle {
+    @apply text-xs md:text-sm text-charcoal/60 font-medium;
+  }
+
+  .main-nav {
+    @apply flex-1 max-w-md mx-8;
+  }
+
+  .nav-list {
+    @apply flex items-center justify-center gap-6 list-none p-0 m-0;
+  }
+
+  .nav-item {
+    @apply relative;
+  }
+
+  .nav-link {
+    @apply text-charcoal/80 font-medium no-underline;
+    @apply hover:text-sage transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2 rounded px-2 py-1;
+    @apply relative;
+  }
+
+  .nav-link[aria-current="page"] {
+    @apply text-sage font-semibold;
+  }
+
+  .nav-link[aria-current="page"]::after {
+    content: '';
+    @apply absolute -bottom-1 left-0 right-0 h-0.5 bg-sage rounded-full;
+  }
+
+  .header-actions {
+    @apply flex items-center gap-3;
+  }
+
+  .refresh-btn {
+    @apply bg-sage/10 hover:bg-sage/20 text-sage;
+    @apply border border-sage/30 rounded-full w-10 h-10;
+    @apply flex items-center justify-center text-lg;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-200 hover:scale-105;
+  }
+
+  /* Footer styles */
+  .site-footer {
+    @apply bg-charcoal text-cream mt-auto;
+  }
+
+  .footer-container {
+    @apply max-w-7xl mx-auto px-4 py-12;
+  }
+
+  .footer-content {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-8 mb-8;
+  }
+
+  .footer-section {
+    @apply space-y-4;
+  }
+
+  .footer-title {
+    @apply text-xl font-bold text-cream mb-3;
+  }
+
+  .footer-subtitle {
+    @apply text-lg font-semibold text-cream/90 mb-3;
+  }
+
+  .footer-description {
+    @apply text-cream/70 leading-relaxed;
+  }
+
+  .footer-links {
+    @apply list-none space-y-2 p-0 m-0;
+  }
+
+  .footer-link {
+    @apply text-cream/70 no-underline;
+    @apply hover:text-sage transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2 focus:ring-offset-charcoal rounded px-1;
+  }
+
+  .footer-social {
+    @apply flex items-center gap-3;
+  }
+
+  .social-btn {
+    @apply bg-transparent border border-cream/30 rounded-full w-10 h-10;
+    @apply flex items-center justify-center text-lg;
+    @apply text-cream/70 hover:text-cream hover:border-sage hover:bg-sage/10;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2 focus:ring-offset-charcoal;
+    @apply transition-all duration-200 hover:scale-105;
+  }
+
+  .social-icon {
+    @apply text-base;
+  }
+
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .footer-bottom {
+    @apply flex flex-col md:flex-row justify-between items-center;
+    @apply pt-8 border-t border-cream/20;
+    @apply text-sm text-cream/60;
+  }
+
+  .footer-copyright {
+    @apply mb-4 md:mb-0;
+  }
+
+  .footer-meta {
+    @apply flex items-center gap-4;
+  }
+
+  .footer-divider {
+    @apply text-cream/40;
+  }
+
+  .footer-credits {
+    @apply text-cream/50;
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .header-content {
+      @apply flex-col items-stretch gap-4;
+    }
+
+    .main-nav {
+      @apply order-last flex-none max-w-none mx-0;
+    }
+
+    .nav-list {
+      @apply justify-start gap-4;
+    }
+
+    .logo {
+      @apply justify-center;
+    }
+
+    .header-actions {
+      @apply justify-center;
+    }
+
+    .main-content {
+      @apply px-3 py-6;
+    }
+
+    .footer-container {
+      @apply px-3 py-8;
+    }
+
+    .footer-content {
+      @apply grid-cols-1 gap-6;
+    }
+
+    .footer-bottom {
+      @apply text-center;
+    }
+
+    .footer-meta {
+      @apply justify-center flex-wrap;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .logo-text {
+      @apply hidden;
+    }
+
+    .logo-icon {
+      @apply text-3xl;
+    }
+
+    .nav-list {
+      @apply gap-3;
+    }
+
+    .nav-link {
+      @apply text-sm;
+    }
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .site-header {
+      @apply bg-white border-b-2 border-charcoal;
+    }
+
+    .nav-link,
+    .footer-link {
+      @apply border border-transparent;
+    }
+
+    .nav-link:focus,
+    .footer-link:focus {
+      @apply border-sage;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    .logo,
+    .refresh-btn,
+    .social-btn {
+      @apply transition-none;
+    }
+
+    .logo:hover,
+    .refresh-btn:hover,
+    .social-btn:hover {
+      @apply scale-100;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .site-header,
+    .site-footer,
+    .skip-link {
+      @apply hidden;
+    }
+
+    .main-content {
+      @apply p-0;
+    }
+
+    body {
+      @apply text-black bg-white;
+    }
+  }
+
+  /* Dark mode support (if implemented) */
+  @media (prefers-color-scheme: dark) {
+    body {
+      @apply bg-charcoal text-cream;
+    }
+
+    .site-header {
+      @apply bg-charcoal/80 border-sage/30;
+    }
+
+    .logo-title,
+    .nav-link {
+      @apply text-cream;
+    }
+
+    .logo-subtitle {
+      @apply text-cream/60;
+    }
+
+    .nav-link[aria-current="page"] {
+      @apply text-sage;
+    }
+
+    .refresh-btn {
+      @apply bg-sage/20 border-sage/50;
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement for layout functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    // Header scroll behavior
+    const header = document.querySelector('.site-header');
+    if (header) {
+      let lastScrollY = window.scrollY;
+      let ticking = false;
+
+      const updateHeader = () => {
+        const currentScrollY = window.scrollY;
+        const scrollingDown = currentScrollY > lastScrollY;
+        const scrolledEnough = Math.abs(currentScrollY - lastScrollY) > 5;
+
+        if (scrolledEnough) {
+          if (scrollingDown && currentScrollY > 100) {
+            header.style.transform = 'translateY(-100%)';
+          } else {
+            header.style.transform = 'translateY(0)';
+          }
+        }
+
+        lastScrollY = currentScrollY;
+        ticking = false;
+      };
+
+      const requestTick = () => {
+        if (!ticking) {
+          requestAnimationFrame(updateHeader);
+          ticking = true;
+        }
+      };
+
+      // Add scroll listener with throttling
+      window.addEventListener('scroll', requestTick, { passive: true });
+
+      // Add transition to header for smooth hiding/showing
+      header.style.transition = 'transform 0.3s ease-in-out';
+    }
+
+    // Mobile menu enhancement (if needed in future)
+    const handleNavigation = () => {
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          // Could add mobile menu closing logic here
+          // For now, just ensure proper navigation
+        });
+      });
+    };
+
+    handleNavigation();
+
+    // Keyboard navigation improvements
+    const improveKeyboardNav = () => {
+      // Skip link functionality
+      const skipLink = document.querySelector('.skip-link');
+      if (skipLink) {
+        skipLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = document.querySelector('#main-content');
+          if (target) {
+            target.focus();
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      }
+
+      // Ensure main content is focusable for skip link
+      const mainContent = document.querySelector('#main-content');
+      if (mainContent && !mainContent.hasAttribute('tabindex')) {
+        mainContent.setAttribute('tabindex', '-1');
+      }
+    };
+
+    improveKeyboardNav();
+
+    // Theme detection and handling
+    const handleThemeChanges = () => {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+      const updateTheme = (e) => {
+        // Could dispatch custom events for theme changes
+        const themeEvent = new CustomEvent('themeChanged', {
+          detail: { isDark: e.matches }
+        });
+        document.dispatchEvent(themeEvent);
+      };
+
+      mediaQuery.addEventListener('change', updateTheme);
+
+      // Initial theme detection
+      updateTheme(mediaQuery);
+    };
+
+    handleThemeChanges();
+  });
+
+  // Social sharing functions
+  function shareOnTwitter() {
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent('Check out these beautiful random images!');
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+
+    window.open(twitterUrl, '_blank', 'width=600,height=400');
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      // Show a temporary notification
+      const notification = document.createElement('div');
+      notification.textContent = 'Link copied!';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #A8D5BA;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease-out;
+      `;
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 300);
+      }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    });
+  }
+
+  // Add CSS animations for notifications
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+</script>

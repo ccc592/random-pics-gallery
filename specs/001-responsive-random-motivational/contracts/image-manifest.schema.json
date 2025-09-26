@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Image Manifest Schema",
+  "description": "Schema for the build-generated image manifest file",
+  "type": "object",
+  "required": ["version", "buildTimestamp", "totalImages", "images", "categories", "breakpoints"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "buildTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when manifest was generated"
+    },
+    "totalImages": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of images in collection"
+    },
+    "images": {
+      "type": "array",
+      "description": "Array of all available images",
+      "items": {
+        "$ref": "#/definitions/Image"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "description": "Available image categories",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "breakpoints": {
+      "type": "array",
+      "description": "Available image width breakpoints",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "Image": {
+      "type": "object",
+      "required": ["id", "filename", "alt", "dimensions", "optimized", "placeholder", "colors", "aspectRatio"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique image identifier"
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Original image filename"
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 125,
+          "description": "Descriptive alt text for accessibility"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Optional image title or caption"
+        },
+        "category": {
+          "type": "string",
+          "description": "Image category or theme"
+        },
+        "dimensions": {
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Original image width in pixels"
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Original image height in pixels"
+            }
+          }
+        },
+        "optimized": {
+          "type": "object",
+          "required": ["avif", "webp", "jpeg"],
+          "properties": {
+            "avif": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ImageVariant"
+              }
+            },
+            "webp": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ImageVariant"
+              }
+            },
+            "jpeg": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ImageVariant"
+              }
+            }
+          }
+        },
+        "placeholder": {
+          "type": "string",
+          "pattern": "^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+$",
+          "description": "Base64-encoded LQIP placeholder"
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          },
+          "description": "Dominant color palette as hex codes"
+        },
+        "aspectRatio": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "description": "Calculated aspect ratio (width/height)"
+        }
+      }
+    },
+    "ImageVariant": {
+      "type": "object",
+      "required": ["src", "width", "height", "format", "quality", "fileSize"],
+      "properties": {
+        "src": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Public URL path to image variant"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Variant width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Variant height in pixels"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["avif", "webp", "jpeg"],
+          "description": "Image format"
+        },
+        "quality": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Compression quality"
+        },
+        "fileSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Approximate file size in bytes"
+        }
+      }
+    }
+  }
+}

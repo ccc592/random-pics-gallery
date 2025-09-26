@@ -1,0 +1,1001 @@
+---
+import Layout from '../components/Layout.astro';
+import ImageGallery from '../components/ImageGallery.astro';
+import type { ImageResponse } from '../types/api';
+import { ImageAPI } from '../services/imageApi';
+
+// Server-side rendering: fetch initial data
+let initialImages: ImageResponse[] = [];
+let initialError: string | null = null;
+let isLoading = false;
+
+try {
+  // Fetch a larger set for the gallery page
+  const response = await ImageAPI.getRandomImages(12);
+  initialImages = response.images;
+} catch (error) {
+  console.error('Failed to fetch gallery images:', error);
+  initialError = error instanceof Error ? error.message : 'Failed to load gallery images';
+}
+
+// Extract available tags for filtering (if any)
+const availableTags = new Set<string>();
+initialImages.forEach(image => {
+  if (image.tags) {
+    image.tags.split(',').forEach(tag => {
+      const cleanTag = tag.trim();
+      if (cleanTag) availableTags.add(cleanTag);
+    });
+  }
+});
+---
+
+<Layout
+  title="Gallery - Random Pics"
+  description="Browse our complete gallery of beautiful random images. Filter by tags, adjust layout, and discover your perfect image collection."
+>
+  <div class="gallery-page">
+    <!-- Gallery Header -->
+    <section class="gallery-header" aria-labelledby="gallery-title">
+      <div class="header-container">
+        <div class="header-content">
+          <div class="header-text">
+            <h1 id="gallery-title" class="page-title">
+              Image Gallery
+            </h1>
+            <p class="page-description">
+              Explore our complete collection of beautiful random images.
+              Use the filters and controls below to customize your viewing experience.
+            </p>
+          </div>
+
+          <div class="header-stats">
+            <div class="stat-card">
+              <span class="stat-number" id="total-images">
+                {initialImages.length}
+              </span>
+              <span class="stat-label">Images Loaded</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-number" id="available-tags">
+                {availableTags.size}
+              </span>
+              <span class="stat-label">Unique Tags</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Controls -->
+    <section class="gallery-controls" aria-label="Gallery controls and filters">
+      <div class="controls-container">
+        <div class="controls-row">
+          <!-- Filter Controls -->
+          <div class="filter-group">
+            <div class="filter-item">
+              <label for="search-input" class="filter-label">Search:</label>
+              <input
+                type="text"
+                id="search-input"
+                class="filter-input"
+                placeholder="Search images..."
+                aria-describedby="search-help"
+              />
+              <small id="search-help" class="filter-help">
+                Search by title, description, or tags
+              </small>
+            </div>
+
+            <div class="filter-item">
+              <label for="tag-select" class="filter-label">Filter by Tag:</label>
+              <select id="tag-select" class="filter-select">
+                <option value="">All Tags</option>
+                {Array.from(availableTags).sort().map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label for="sort-select" class="filter-label">Sort by:</label>
+              <select id="sort-select" class="filter-select">
+                <option value="random">Random Order</option>
+                <option value="title">Title (A-Z)</option>
+                <option value="title-desc">Title (Z-A)</option>
+                <option value="weight">Weight (High to Low)</option>
+                <option value="weight-asc">Weight (Low to High)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- View Controls -->
+          <div class="view-group">
+            <div class="view-item">
+              <label for="columns-range" class="view-label">Columns:</label>
+              <input
+                type="range"
+                id="columns-range"
+                class="view-range"
+                min="0"
+                max="6"
+                value="0"
+                aria-describedby="columns-help"
+              />
+              <span id="columns-display" class="view-value">Auto</span>
+              <small id="columns-help" class="view-help">
+                0 = Auto responsive
+              </small>
+            </div>
+
+            <div class="view-item">
+              <label for="gap-range" class="view-label">Spacing:</label>
+              <input
+                type="range"
+                id="gap-range"
+                class="view-range"
+                min="2"
+                max="12"
+                value="6"
+                aria-describedby="gap-help"
+              />
+              <span id="gap-display" class="view-value">6</span>
+              <small id="gap-help" class="view-help">
+                Grid gap in units
+              </small>
+            </div>
+
+            <div class="view-item">
+              <fieldset class="toggle-group">
+                <legend class="view-label">Display Options:</legend>
+                <label class="toggle-item">
+                  <input
+                    type="checkbox"
+                    id="show-titles"
+                    class="toggle-input"
+                    checked
+                  />
+                  <span class="toggle-label">Titles</span>
+                </label>
+                <label class="toggle-item">
+                  <input
+                    type="checkbox"
+                    id="show-tags"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-label">Tags</span>
+                </label>
+                <label class="toggle-item">
+                  <input
+                    type="checkbox"
+                    id="show-metadata"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-label">Metadata</span>
+                </label>
+              </fieldset>
+            </div>
+          </div>
+
+          <!-- Action Controls -->
+          <div class="action-group">
+            <button
+              id="refresh-gallery"
+              class="action-btn primary"
+              type="button"
+              aria-label="Refresh gallery with new images"
+            >
+              <span class="btn-icon">🔄</span>
+              <span class="btn-text">Refresh</span>
+            </button>
+
+            <button
+              id="load-more-gallery"
+              class="action-btn secondary"
+              type="button"
+              aria-label="Load more images"
+            >
+              <span class="btn-icon">➕</span>
+              <span class="btn-text">Load More</span>
+            </button>
+
+            <button
+              id="clear-filters"
+              class="action-btn tertiary"
+              type="button"
+              aria-label="Clear all filters"
+            >
+              <span class="btn-icon">🗑️</span>
+              <span class="btn-text">Clear</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Content -->
+    <section class="gallery-content" aria-labelledby="gallery-images-title">
+      <div class="content-container">
+        <h2 id="gallery-images-title" class="sr-only">Gallery Images</h2>
+
+        <!-- Gallery Component -->
+        <ImageGallery
+          images={initialImages}
+          title=""
+          showTitle={true}
+          showTags={false}
+          showMetadata={false}
+          columns={0}
+          gap={6}
+          loading={isLoading}
+          error={initialError}
+          emptyMessage="No images match your current filters. Try adjusting your search criteria."
+          className="main-gallery"
+        />
+
+        <!-- Load More Section -->
+        <div id="load-more-section" class="load-more-section">
+          <button
+            id="load-more-bottom"
+            class="load-more-btn"
+            type="button"
+            aria-label="Load more images"
+          >
+            <span class="btn-icon">⬇️</span>
+            <span class="btn-text">Load More Images</span>
+            <span class="btn-count" id="load-count">(+6)</span>
+          </button>
+        </div>
+
+        <!-- Gallery Footer Info -->
+        <div class="gallery-footer">
+          <div class="footer-info">
+            <p class="info-text">
+              Showing <span id="visible-count">{initialImages.length}</span>
+              of <span id="total-count">{initialImages.length}</span> images
+            </p>
+            <div class="footer-actions">
+              <button
+                id="scroll-to-top"
+                class="scroll-btn"
+                type="button"
+                title="Scroll to top"
+                aria-label="Scroll to top of gallery"
+              >
+                ⬆️ Top
+              </button>
+              <button
+                id="export-gallery"
+                class="export-btn"
+                type="button"
+                title="Export current view"
+                aria-label="Export current gallery view"
+              >
+                📤 Export
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  /* Gallery Header */
+  .gallery-header {
+    @apply bg-gradient-to-r from-sage/10 to-coral/10 py-12 md:py-16;
+  }
+
+  .header-container {
+    @apply max-w-7xl mx-auto px-4;
+  }
+
+  .header-content {
+    @apply flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8;
+  }
+
+  .header-text {
+    @apply flex-1;
+  }
+
+  .page-title {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-charcoal mb-4;
+  }
+
+  .page-description {
+    @apply text-lg md:text-xl text-charcoal/70 leading-relaxed max-w-2xl;
+  }
+
+  .header-stats {
+    @apply flex gap-6;
+  }
+
+  .stat-card {
+    @apply bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center min-w-24;
+    @apply border border-sage/20 shadow-sm;
+  }
+
+  .stat-number {
+    @apply block text-2xl md:text-3xl font-bold text-sage;
+  }
+
+  .stat-label {
+    @apply text-xs md:text-sm text-charcoal/60 font-medium;
+  }
+
+  /* Gallery Controls */
+  .gallery-controls {
+    @apply bg-white/80 backdrop-blur-sm border-b border-sage/20 sticky top-16 z-30;
+    @apply shadow-sm;
+  }
+
+  .controls-container {
+    @apply max-w-7xl mx-auto px-4 py-6;
+  }
+
+  .controls-row {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+
+  .filter-group,
+  .view-group,
+  .action-group {
+    @apply space-y-4;
+  }
+
+  .filter-item,
+  .view-item {
+    @apply space-y-1;
+  }
+
+  .filter-label,
+  .view-label {
+    @apply block text-sm font-medium text-charcoal mb-1;
+  }
+
+  .filter-input,
+  .filter-select {
+    @apply w-full px-3 py-2 border border-sage/30 rounded-lg;
+    @apply bg-white focus:outline-none focus:ring-2 focus:ring-sage/50 focus:border-sage;
+    @apply transition-colors duration-200;
+  }
+
+  .view-range {
+    @apply w-full h-2 bg-sage/20 rounded-lg appearance-none cursor-pointer;
+  }
+
+  .view-range::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-sage rounded-full cursor-pointer;
+  }
+
+  .view-range::-moz-range-thumb {
+    @apply w-4 h-4 bg-sage rounded-full border-0 cursor-pointer;
+  }
+
+  .view-value {
+    @apply inline-block min-w-12 text-center text-sm font-medium text-sage;
+  }
+
+  .filter-help,
+  .view-help {
+    @apply text-xs text-charcoal/50;
+  }
+
+  .toggle-group {
+    @apply border-0 p-0 m-0;
+  }
+
+  .toggle-item {
+    @apply flex items-center gap-2 cursor-pointer;
+  }
+
+  .toggle-input {
+    @apply w-4 h-4 text-sage bg-white border border-sage/30 rounded;
+    @apply focus:ring-sage/50 focus:ring-2;
+  }
+
+  .toggle-label {
+    @apply text-sm text-charcoal select-none;
+  }
+
+  /* Action Buttons */
+  .action-group {
+    @apply flex flex-col gap-2;
+  }
+
+  .action-btn {
+    @apply flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  .action-btn.primary {
+    @apply bg-sage hover:bg-sage/90 text-white;
+    @apply focus:ring-sage/50;
+  }
+
+  .action-btn.secondary {
+    @apply bg-coral hover:bg-coral/90 text-white;
+    @apply focus:ring-coral/50;
+  }
+
+  .action-btn.tertiary {
+    @apply bg-white hover:bg-gray-50 text-charcoal border border-sage/30;
+    @apply focus:ring-sage/50;
+  }
+
+  .btn-icon {
+    @apply text-base;
+  }
+
+  .btn-text {
+    @apply text-sm;
+  }
+
+  /* Gallery Content */
+  .gallery-content {
+    @apply py-8 md:py-12;
+  }
+
+  .content-container {
+    @apply max-w-7xl mx-auto px-4 space-y-8;
+  }
+
+  /* Load More Section */
+  .load-more-section {
+    @apply text-center py-8;
+  }
+
+  .load-more-btn {
+    @apply bg-gradient-to-r from-sage to-coral hover:from-sage/90 hover:to-coral/90;
+    @apply text-white font-semibold px-8 py-4 rounded-full;
+    @apply flex items-center gap-3 mx-auto;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl;
+  }
+
+  .btn-count {
+    @apply bg-white/20 px-2 py-1 rounded text-sm;
+  }
+
+  /* Gallery Footer */
+  .gallery-footer {
+    @apply border-t border-sage/20 pt-6;
+  }
+
+  .footer-info {
+    @apply flex flex-col sm:flex-row justify-between items-center gap-4;
+  }
+
+  .info-text {
+    @apply text-sm text-charcoal/70;
+  }
+
+  .footer-actions {
+    @apply flex gap-3;
+  }
+
+  .scroll-btn,
+  .export-btn {
+    @apply bg-white hover:bg-sage/10 border border-sage/30;
+    @apply px-3 py-2 rounded-lg text-sm font-medium text-charcoal;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-200;
+  }
+
+  /* Screen Reader Only */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .controls-row {
+      @apply grid-cols-1 gap-4;
+    }
+
+    .action-group {
+      @apply flex-row justify-center;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .gallery-controls {
+      @apply top-20;
+    }
+
+    .header-content {
+      @apply gap-6;
+    }
+
+    .header-stats {
+      @apply gap-4;
+    }
+
+    .stat-card {
+      @apply p-3 min-w-20;
+    }
+
+    .controls-container {
+      @apply px-3 py-4;
+    }
+
+    .action-group {
+      @apply flex-col;
+    }
+
+    .action-btn {
+      @apply text-sm px-3 py-2;
+    }
+
+    .footer-info {
+      @apply text-center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .page-title {
+      @apply text-2xl;
+    }
+
+    .header-stats {
+      @apply justify-center;
+    }
+
+    .load-more-btn {
+      @apply px-6 py-3 text-sm;
+    }
+
+    .btn-count {
+      @apply hidden;
+    }
+  }
+
+  /* Accessibility Improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .action-btn,
+    .load-more-btn {
+      @apply transition-none;
+    }
+
+    .action-btn:hover,
+    .load-more-btn:hover {
+      @apply scale-100;
+    }
+  }
+
+  @media (prefers-contrast: high) {
+    .gallery-controls,
+    .stat-card {
+      @apply bg-white border-2 border-charcoal;
+    }
+
+    .filter-input,
+    .filter-select {
+      @apply border-2 border-charcoal;
+    }
+  }
+
+  /* Print Styles */
+  @media print {
+    .gallery-controls,
+    .load-more-section,
+    .gallery-footer {
+      @apply hidden;
+    }
+
+    .gallery-header {
+      @apply py-6;
+    }
+  }
+</style>
+
+<script>
+  // Client-side functionality for the gallery page
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Import services
+    const { ImageAPI } = await import('../services/imageApi');
+    const { imageCache } = await import('../services/cache');
+
+    let allImages = [];
+    let filteredImages = [];
+    let currentFilters = {
+      search: '',
+      tag: '',
+      sort: 'random'
+    };
+    let displayOptions = {
+      columns: 0,
+      gap: 6,
+      showTitles: true,
+      showTags: false,
+      showMetadata: false
+    };
+    let isLoading = false;
+    let hasMore = true;
+
+    // Initialize with server-side data
+    const initializeGallery = () => {
+      const galleryElement = document.querySelector('.main-gallery');
+      if (galleryElement) {
+        const serverImages = Array.from(galleryElement.querySelectorAll('[data-image-id]'));
+        // In a real implementation, we'd extract image data from the DOM
+        // For now, we'll fetch fresh data
+        loadInitialImages();
+      }
+    };
+
+    // Load initial images
+    const loadInitialImages = async () => {
+      try {
+        setLoadingState(true);
+        const response = await ImageAPI.getRandomImages(12);
+        allImages = response.images;
+        applyFilters();
+        updateStats();
+      } catch (error) {
+        showError('Failed to load initial images');
+      } finally {
+        setLoadingState(false);
+      }
+    };
+
+    // Apply current filters and sorting
+    const applyFilters = () => {
+      let filtered = [...allImages];
+
+      // Apply search filter
+      if (currentFilters.search) {
+        const searchLower = currentFilters.search.toLowerCase();
+        filtered = filtered.filter(image =>
+          (image.title && image.title.toLowerCase().includes(searchLower)) ||
+          (image.alt && image.alt.toLowerCase().includes(searchLower)) ||
+          (image.tags && image.tags.toLowerCase().includes(searchLower))
+        );
+      }
+
+      // Apply tag filter
+      if (currentFilters.tag) {
+        filtered = filtered.filter(image =>
+          image.tags && image.tags.split(',').some(tag =>
+            tag.trim().toLowerCase() === currentFilters.tag.toLowerCase()
+          )
+        );
+      }
+
+      // Apply sorting
+      switch (currentFilters.sort) {
+        case 'title':
+          filtered.sort((a, b) => (a.title || a.alt).localeCompare(b.title || b.alt));
+          break;
+        case 'title-desc':
+          filtered.sort((a, b) => (b.title || b.alt).localeCompare(a.title || a.alt));
+          break;
+        case 'weight':
+          filtered.sort((a, b) => b.weight - a.weight);
+          break;
+        case 'weight-asc':
+          filtered.sort((a, b) => a.weight - b.weight);
+          break;
+        case 'random':
+        default:
+          // Shuffle array
+          for (let i = filtered.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+          }
+          break;
+      }
+
+      filteredImages = filtered;
+      updateGalleryDisplay();
+      updateVisibleCount();
+    };
+
+    // Update gallery display
+    const updateGalleryDisplay = () => {
+      const updateEvent = new CustomEvent('galleryUpdate', {
+        detail: {
+          images: filteredImages,
+          options: displayOptions
+        }
+      });
+      document.dispatchEvent(updateEvent);
+    };
+
+    // Load more images
+    const loadMoreImages = async () => {
+      if (isLoading || !hasMore) return;
+
+      try {
+        setLoadingState(true);
+        const response = await ImageAPI.getRandomImages(6);
+
+        if (response.images.length === 0) {
+          hasMore = false;
+          updateLoadMoreButton();
+          return;
+        }
+
+        // Add new images to collection
+        allImages = [...allImages, ...response.images];
+        applyFilters();
+        updateStats();
+
+        showNotification(`Loaded ${response.images.length} new images!`, 'success');
+      } catch (error) {
+        showError('Failed to load more images');
+      } finally {
+        setLoadingState(false);
+      }
+    };
+
+    // Refresh gallery with new images
+    const refreshGallery = async () => {
+      if (isLoading) return;
+
+      try {
+        setLoadingState(true);
+        const response = await ImageAPI.getRandomImages(12);
+        allImages = response.images;
+        hasMore = true;
+        applyFilters();
+        updateStats();
+        updateLoadMoreButton();
+
+        showNotification('Gallery refreshed!', 'success');
+      } catch (error) {
+        showError('Failed to refresh gallery');
+      } finally {
+        setLoadingState(false);
+      }
+    };
+
+    // Clear all filters
+    const clearFilters = () => {
+      currentFilters = {
+        search: '',
+        tag: '',
+        sort: 'random'
+      };
+
+      // Reset form controls
+      document.getElementById('search-input').value = '';
+      document.getElementById('tag-select').value = '';
+      document.getElementById('sort-select').value = 'random';
+
+      applyFilters();
+      showNotification('Filters cleared!', 'success');
+    };
+
+    // Update stats display
+    const updateStats = () => {
+      const totalElement = document.getElementById('total-images');
+      const tagsElement = document.getElementById('available-tags');
+
+      if (totalElement) {
+        totalElement.textContent = allImages.length.toString();
+      }
+
+      // Count unique tags
+      const uniqueTags = new Set();
+      allImages.forEach(image => {
+        if (image.tags) {
+          image.tags.split(',').forEach(tag => {
+            const cleanTag = tag.trim();
+            if (cleanTag) uniqueTags.add(cleanTag);
+          });
+        }
+      });
+
+      if (tagsElement) {
+        tagsElement.textContent = uniqueTags.size.toString();
+      }
+    };
+
+    // Update visible count
+    const updateVisibleCount = () => {
+      const visibleElement = document.getElementById('visible-count');
+      const totalElement = document.getElementById('total-count');
+
+      if (visibleElement) {
+        visibleElement.textContent = filteredImages.length.toString();
+      }
+
+      if (totalElement) {
+        totalElement.textContent = allImages.length.toString();
+      }
+    };
+
+    // Update load more button
+    const updateLoadMoreButton = () => {
+      const loadMoreBtn = document.getElementById('load-more-bottom');
+      const loadCountSpan = document.getElementById('load-count');
+
+      if (loadMoreBtn) {
+        loadMoreBtn.style.display = hasMore ? 'flex' : 'none';
+      }
+
+      if (loadCountSpan && hasMore) {
+        loadCountSpan.textContent = '(+6)';
+      }
+    };
+
+    // Set loading state
+    const setLoadingState = (loading) => {
+      isLoading = loading;
+
+      const buttons = [
+        'refresh-gallery',
+        'load-more-gallery',
+        'load-more-bottom'
+      ];
+
+      buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.disabled = loading;
+          const textSpan = btn.querySelector('.btn-text');
+          if (textSpan) {
+            textSpan.textContent = loading ? 'Loading...' : textSpan.getAttribute('data-original') || textSpan.textContent;
+          }
+        }
+      });
+    };
+
+    // Show error message
+    const showError = (message) => {
+      showNotification(message, 'error');
+    };
+
+    // Show notification
+    const showNotification = (message, type = 'info') => {
+      // Use the same notification system from the home page
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.textContent = message;
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.classList.add('notification-exit');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+    };
+
+    // Export functionality
+    const exportGallery = () => {
+      const exportData = {
+        images: filteredImages.map(img => ({
+          id: img.id,
+          title: img.title,
+          alt: img.alt,
+          tags: img.tags,
+          url: `${import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080'}${img.storage_path}`
+        })),
+        filters: currentFilters,
+        displayOptions,
+        exportedAt: new Date().toISOString(),
+        totalImages: allImages.length,
+        filteredImages: filteredImages.length
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gallery-export-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showNotification('Gallery exported!', 'success');
+    };
+
+    // Event listeners
+    document.getElementById('search-input')?.addEventListener('input', (e) => {
+      currentFilters.search = e.target.value;
+      applyFilters();
+    });
+
+    document.getElementById('tag-select')?.addEventListener('change', (e) => {
+      currentFilters.tag = e.target.value;
+      applyFilters();
+    });
+
+    document.getElementById('sort-select')?.addEventListener('change', (e) => {
+      currentFilters.sort = e.target.value;
+      applyFilters();
+    });
+
+    // Display option controls
+    document.getElementById('columns-range')?.addEventListener('input', (e) => {
+      displayOptions.columns = parseInt(e.target.value);
+      const display = document.getElementById('columns-display');
+      if (display) {
+        display.textContent = displayOptions.columns === 0 ? 'Auto' : displayOptions.columns.toString();
+      }
+      updateGalleryDisplay();
+    });
+
+    document.getElementById('gap-range')?.addEventListener('input', (e) => {
+      displayOptions.gap = parseInt(e.target.value);
+      const display = document.getElementById('gap-display');
+      if (display) {
+        display.textContent = displayOptions.gap.toString();
+      }
+      updateGalleryDisplay();
+    });
+
+    document.getElementById('show-titles')?.addEventListener('change', (e) => {
+      displayOptions.showTitles = e.target.checked;
+      updateGalleryDisplay();
+    });
+
+    document.getElementById('show-tags')?.addEventListener('change', (e) => {
+      displayOptions.showTags = e.target.checked;
+      updateGalleryDisplay();
+    });
+
+    document.getElementById('show-metadata')?.addEventListener('change', (e) => {
+      displayOptions.showMetadata = e.target.checked;
+      updateGalleryDisplay();
+    });
+
+    // Action buttons
+    document.getElementById('refresh-gallery')?.addEventListener('click', refreshGallery);
+    document.getElementById('load-more-gallery')?.addEventListener('click', loadMoreImages);
+    document.getElementById('load-more-bottom')?.addEventListener('click', loadMoreImages);
+    document.getElementById('clear-filters')?.addEventListener('click', clearFilters);
+    document.getElementById('export-gallery')?.addEventListener('click', exportGallery);
+
+    // Scroll to top
+    document.getElementById('scroll-to-top')?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      switch (e.key.toLowerCase()) {
+        case 'r':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            refreshGallery();
+          }
+          break;
+        case 'c':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            clearFilters();
+          }
+          break;
+        case 'e':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            exportGallery();
+          }
+          break;
+        case '/':
+          e.preventDefault();
+          document.getElementById('search-input')?.focus();
+          break;
+      }
+    });
+
+    // Initialize
+    initializeGallery();
+  });
+</script>

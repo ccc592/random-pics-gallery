@@ -1,0 +1,934 @@
+---
+import Layout from '../components/Layout.astro';
+import ImageGallery from '../components/ImageGallery.astro';
+import type { ImageResponse, RandomImagesResponse } from '../types/api';
+import { ImageAPI } from '../services/imageApi';
+
+// Server-side rendering: fetch initial data
+let initialImages: ImageResponse[] = [];
+let initialError: string | null = null;
+let sessionSeed: string = '';
+let isLoading = false;
+
+try {
+  // Attempt to fetch random images on the server
+  const response: RandomImagesResponse = await ImageAPI.getRandomImages(6);
+  initialImages = response.images;
+  sessionSeed = response.session_seed;
+} catch (error) {
+  console.error('Failed to fetch initial images:', error);
+  initialError = error instanceof Error ? error.message : 'Failed to load images';
+}
+
+// Generate cache key for client-side caching
+const cacheKey = `random_${initialImages.length}_${sessionSeed}`;
+---
+
+<Layout
+  title="Random Pics - Discover Beautiful Random Images"
+  description="Explore our curated collection of beautiful random images. Perfect for inspiration, backgrounds, or discovering stunning photography from around the world."
+>
+  <div class="home-page">
+    <!-- Hero Section -->
+    <section class="hero-section" aria-labelledby="hero-title">
+      <div class="hero-container">
+        <div class="hero-content">
+          <h1 id="hero-title" class="hero-title">
+            Discover <span class="hero-highlight">Beautiful</span> Random Images
+          </h1>
+          <p class="hero-description">
+            Explore our carefully curated collection of stunning photography.
+            Each visit brings you a new set of beautiful, random images perfect
+            for inspiration, backgrounds, or simply enjoying visual art.
+          </p>
+
+          <div class="hero-actions">
+            <button
+              id="refresh-images"
+              class="primary-btn"
+              type="button"
+              aria-label="Get new random images"
+            >
+              <span class="btn-icon">🔄</span>
+              <span class="btn-text">Get New Images</span>
+            </button>
+
+            <button
+              id="view-all"
+              class="secondary-btn"
+              type="button"
+              onclick="document.getElementById('gallery-section').scrollIntoView({ behavior: 'smooth' })"
+              aria-label="View image gallery"
+            >
+              <span class="btn-icon">👀</span>
+              <span class="btn-text">View Gallery</span>
+            </button>
+          </div>
+
+          <div class="hero-stats" role="region" aria-label="Image statistics">
+            <div class="stat-item">
+              <span class="stat-number" id="image-count">
+                {initialImages.length}
+              </span>
+              <span class="stat-label">Images Loaded</span>
+            </div>
+            <div class="stat-divider">•</div>
+            <div class="stat-item">
+              <span class="stat-number">∞</span>
+              <span class="stat-label">Possibilities</span>
+            </div>
+            <div class="stat-divider">•</div>
+            <div class="stat-item">
+              <span class="stat-number" id="session-indicator">
+                {sessionSeed ? '🎲' : '⚡'}
+              </span>
+              <span class="stat-label">
+                {sessionSeed ? 'Seeded' : 'Random'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="visual-grid">
+            <div class="visual-item visual-1">📸</div>
+            <div class="visual-item visual-2">🎨</div>
+            <div class="visual-item visual-3">🌟</div>
+            <div class="visual-item visual-4">✨</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Image Gallery Section -->
+    <section
+      id="gallery-section"
+      class="gallery-section"
+      aria-labelledby="gallery-title"
+    >
+      <div class="section-container">
+        <header class="section-header">
+          <h2 id="gallery-title" class="section-title">
+            Today's Random Collection
+          </h2>
+          <p class="section-description">
+            A fresh selection of beautiful images, randomly chosen just for you.
+            Each refresh brings new discoveries and visual inspiration.
+          </p>
+        </header>
+
+        <!-- Gallery Component -->
+        <ImageGallery
+          images={initialImages}
+          title=""
+          showTitle={true}
+          showTags={false}
+          showMetadata={false}
+          columns={0}
+          gap={6}
+          loading={isLoading}
+          error={initialError}
+          emptyMessage="No images available at the moment. Try refreshing the page."
+          className="home-gallery"
+        />
+
+        <!-- Gallery Actions -->
+        <div class="gallery-actions">
+          <button
+            id="load-more"
+            class="load-more-btn"
+            type="button"
+            aria-label="Load more images"
+            style="display: none;"
+          >
+            <span class="btn-icon">➕</span>
+            <span class="btn-text">Load More Images</span>
+          </button>
+
+          <div class="action-group">
+            <button
+              id="shuffle-images"
+              class="action-btn"
+              type="button"
+              title="Shuffle current images"
+              aria-label="Shuffle current images"
+            >
+              🔀
+            </button>
+
+            <button
+              id="favorite-session"
+              class="action-btn"
+              type="button"
+              title="Save this session"
+              aria-label="Save this image session"
+            >
+              ❤️
+            </button>
+
+            <button
+              id="share-session"
+              class="action-btn"
+              type="button"
+              title="Share this collection"
+              aria-label="Share this image collection"
+            >
+              📤
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" aria-labelledby="features-title">
+      <div class="section-container">
+        <header class="section-header">
+          <h2 id="features-title" class="section-title">
+            Why Random Pics?
+          </h2>
+          <p class="section-description">
+            Discover the perfect blend of curation and serendipity
+          </p>
+        </header>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3 class="feature-title">Curated Quality</h3>
+            <p class="feature-description">
+              Every image in our collection is carefully selected for visual
+              appeal, quality, and artistic merit.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔀</div>
+            <h3 class="feature-title">True Randomness</h3>
+            <p class="feature-description">
+              Our advanced algorithm ensures truly random selections with
+              optional seeding for reproducible results.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 class="feature-title">Lightning Fast</h3>
+            <p class="feature-description">
+              Optimized delivery with smart caching ensures your images
+              load quickly, no matter where you are.
+            </p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3 class="feature-title">Responsive Design</h3>
+            <p class="feature-description">
+              Beautiful presentation on any device - from mobile phones
+              to desktop displays.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  /* Hero Section */
+  .hero-section {
+    @apply bg-gradient-to-br from-sage/10 via-cream to-coral/10;
+    @apply py-16 md:py-24 relative overflow-hidden;
+  }
+
+  .hero-container {
+    @apply max-w-7xl mx-auto px-4;
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-12 items-center;
+  }
+
+  .hero-content {
+    @apply space-y-8 text-center lg:text-left;
+  }
+
+  .hero-title {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold text-charcoal leading-tight;
+  }
+
+  .hero-highlight {
+    @apply text-sage relative;
+  }
+
+  .hero-highlight::after {
+    content: '';
+    @apply absolute -bottom-1 left-0 right-0 h-1 bg-sage/30 rounded-full;
+  }
+
+  .hero-description {
+    @apply text-lg md:text-xl text-charcoal/70 leading-relaxed max-w-2xl;
+    @apply mx-auto lg:mx-0;
+  }
+
+  .hero-actions {
+    @apply flex flex-col sm:flex-row gap-4 justify-center lg:justify-start;
+  }
+
+  .primary-btn {
+    @apply bg-sage hover:bg-sage/90 text-white font-semibold;
+    @apply px-8 py-4 rounded-full flex items-center gap-3;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl;
+  }
+
+  .secondary-btn {
+    @apply bg-white hover:bg-cream border-2 border-sage text-sage font-semibold;
+    @apply px-8 py-4 rounded-full flex items-center gap-3;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg;
+  }
+
+  .btn-icon {
+    @apply text-lg;
+  }
+
+  .btn-text {
+    @apply whitespace-nowrap;
+  }
+
+  .hero-stats {
+    @apply flex items-center justify-center lg:justify-start gap-6 text-center;
+    @apply pt-8 border-t border-sage/20;
+  }
+
+  .stat-item {
+    @apply flex flex-col gap-1;
+  }
+
+  .stat-number {
+    @apply text-2xl md:text-3xl font-bold text-sage;
+  }
+
+  .stat-label {
+    @apply text-xs md:text-sm text-charcoal/60 font-medium uppercase tracking-wide;
+  }
+
+  .stat-divider {
+    @apply text-sage/40 text-xl;
+  }
+
+  /* Hero Visual */
+  .hero-visual {
+    @apply relative flex items-center justify-center lg:justify-end;
+  }
+
+  .visual-grid {
+    @apply grid grid-cols-2 gap-6 w-64 h-64;
+  }
+
+  .visual-item {
+    @apply bg-white/60 backdrop-blur-sm rounded-2xl;
+    @apply flex items-center justify-center text-4xl;
+    @apply shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply hover:scale-110 hover:rotate-6;
+  }
+
+  .visual-1 { animation: float 3s ease-in-out infinite; }
+  .visual-2 { animation: float 3s ease-in-out infinite 0.5s; }
+  .visual-3 { animation: float 3s ease-in-out infinite 1s; }
+  .visual-4 { animation: float 3s ease-in-out infinite 1.5s; }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Section Styles */
+  .gallery-section {
+    @apply py-16 md:py-20;
+  }
+
+  .features-section {
+    @apply py-16 md:py-20 bg-white/50;
+  }
+
+  .section-container {
+    @apply max-w-7xl mx-auto px-4;
+  }
+
+  .section-header {
+    @apply text-center mb-12 md:mb-16;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-charcoal mb-4;
+  }
+
+  .section-description {
+    @apply text-lg md:text-xl text-charcoal/70 max-w-3xl mx-auto;
+  }
+
+  /* Gallery Actions */
+  .gallery-actions {
+    @apply flex flex-col sm:flex-row items-center justify-between gap-6 mt-12;
+    @apply p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-sage/20;
+  }
+
+  .load-more-btn {
+    @apply bg-coral hover:bg-coral/90 text-white font-semibold;
+    @apply px-6 py-3 rounded-full flex items-center gap-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-coral/50 focus:ring-offset-2;
+    @apply transition-all duration-300 hover:scale-105;
+  }
+
+  .action-group {
+    @apply flex items-center gap-3;
+  }
+
+  .action-btn {
+    @apply bg-white hover:bg-sage/10 border border-sage/30;
+    @apply w-12 h-12 rounded-full flex items-center justify-center text-xl;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage/50 focus:ring-offset-2;
+    @apply transition-all duration-300 hover:scale-110 hover:border-sage;
+  }
+
+  /* Features Grid */
+  .features-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8;
+  }
+
+  .feature-card {
+    @apply bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-sage/20;
+    @apply text-center space-y-4 shadow-md hover:shadow-lg;
+    @apply transition-all duration-300 hover:scale-105;
+  }
+
+  .feature-icon {
+    @apply text-4xl mx-auto;
+  }
+
+  .feature-title {
+    @apply text-xl font-semibold text-charcoal;
+  }
+
+  .feature-description {
+    @apply text-charcoal/70 leading-relaxed;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-section {
+      @apply py-12;
+    }
+
+    .hero-title {
+      @apply text-3xl;
+    }
+
+    .hero-description {
+      @apply text-base;
+    }
+
+    .hero-actions {
+      @apply gap-3;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      @apply px-6 py-3 text-sm;
+    }
+
+    .section-container {
+      @apply px-3;
+    }
+
+    .gallery-actions {
+      @apply flex-col gap-4 p-4;
+    }
+
+    .action-group {
+      @apply order-first;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-stats {
+      @apply gap-4;
+    }
+
+    .visual-grid {
+      @apply w-48 h-48 gap-4;
+    }
+
+    .visual-item {
+      @apply text-2xl;
+    }
+
+    .features-grid {
+      @apply gap-6;
+    }
+
+    .feature-card {
+      @apply p-4;
+    }
+  }
+
+  /* Accessibility and Motion */
+  @media (prefers-reduced-motion: reduce) {
+    .primary-btn,
+    .secondary-btn,
+    .action-btn,
+    .feature-card,
+    .visual-item {
+      @apply transition-none;
+    }
+
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .action-btn:hover,
+    .feature-card:hover,
+    .visual-item:hover {
+      @apply scale-100 rotate-0;
+    }
+
+    .visual-item {
+      animation: none;
+    }
+  }
+
+  @media (prefers-contrast: high) {
+    .hero-section {
+      @apply bg-white;
+    }
+
+    .feature-card,
+    .gallery-actions {
+      @apply bg-white border-2 border-charcoal;
+    }
+  }
+
+  /* Print Styles */
+  @media print {
+    .hero-actions,
+    .gallery-actions,
+    .hero-visual {
+      @apply hidden;
+    }
+
+    .hero-section,
+    .features-section {
+      @apply py-8;
+    }
+  }
+</style>
+
+<script>
+  // Client-side functionality for the home page
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Import API client dynamically for client-side use
+    const { ImageAPI } = await import('../services/imageApi');
+    const { imageCache } = await import('../services/cache');
+
+    let currentImages = [];
+    let currentSeed = '';
+    let isLoading = false;
+
+    // Initialize with server-side data if available
+    const galleryElement = document.querySelector('.home-gallery');
+    if (galleryElement) {
+      const serverImages = galleryElement.querySelectorAll('[data-image-id]');
+      currentImages = Array.from(serverImages).map(img => ({
+        id: img.getAttribute('data-image-id')
+      }));
+    }
+
+    // Update UI state
+    const updateLoadingState = (loading) => {
+      isLoading = loading;
+      const refreshBtn = document.getElementById('refresh-images');
+      const loadMoreBtn = document.getElementById('load-more');
+
+      if (refreshBtn) {
+        refreshBtn.disabled = loading;
+        refreshBtn.querySelector('.btn-text').textContent =
+          loading ? 'Loading...' : 'Get New Images';
+        refreshBtn.querySelector('.btn-icon').textContent = loading ? '⏳' : '🔄';
+      }
+
+      if (loadMoreBtn) {
+        loadMoreBtn.disabled = loading;
+        loadMoreBtn.querySelector('.btn-text').textContent =
+          loading ? 'Loading...' : 'Load More Images';
+      }
+    };
+
+    // Update image count
+    const updateImageCount = (count) => {
+      const countElement = document.getElementById('image-count');
+      if (countElement) {
+        countElement.textContent = count.toString();
+      }
+    };
+
+    // Update session indicator
+    const updateSessionIndicator = (seed) => {
+      const indicator = document.getElementById('session-indicator');
+      if (indicator) {
+        indicator.textContent = seed ? '🎲' : '⚡';
+        const label = indicator.nextElementSibling;
+        if (label) {
+          label.textContent = seed ? 'Seeded' : 'Random';
+        }
+      }
+    };
+
+    // Load new random images
+    const loadRandomImages = async (count = 6, seed = null) => {
+      if (isLoading) return;
+
+      updateLoadingState(true);
+
+      try {
+        const response = await ImageAPI.getRandomImages(count, seed);
+
+        // Cache the response
+        const cacheKey = imageCache.getRandomImagesCacheKey(count, seed);
+        imageCache.cacheRandomImages(cacheKey, response);
+
+        // Update current state
+        currentImages = response.images;
+        currentSeed = response.session_seed;
+
+        // Update UI
+        updateImageCount(response.images.length);
+        updateSessionIndicator(response.session_seed);
+
+        // Dispatch event for gallery to update
+        const updateEvent = new CustomEvent('imagesUpdated', {
+          detail: {
+            images: response.images,
+            seed: response.session_seed
+          }
+        });
+        document.dispatchEvent(updateEvent);
+
+        // Show load more button if we have images
+        const loadMoreBtn = document.getElementById('load-more');
+        if (loadMoreBtn && response.images.length > 0) {
+          loadMoreBtn.style.display = 'flex';
+        }
+
+      } catch (error) {
+        console.error('Failed to load random images:', error);
+
+        // Show error notification
+        showNotification('Failed to load new images. Please try again.', 'error');
+      } finally {
+        updateLoadingState(false);
+      }
+    };
+
+    // Load more images (append to current)
+    const loadMoreImages = async () => {
+      if (isLoading) return;
+
+      updateLoadingState(true);
+
+      try {
+        const response = await ImageAPI.getRandomImages(3); // Load 3 more
+
+        // Append to current images
+        currentImages = [...currentImages, ...response.images];
+
+        // Update UI
+        updateImageCount(currentImages.length);
+
+        // Dispatch event for gallery to append
+        const appendEvent = new CustomEvent('imagesAppended', {
+          detail: {
+            images: response.images
+          }
+        });
+        document.dispatchEvent(appendEvent);
+
+      } catch (error) {
+        console.error('Failed to load more images:', error);
+        showNotification('Failed to load more images. Please try again.', 'error');
+      } finally {
+        updateLoadingState(false);
+      }
+    };
+
+    // Shuffle current images
+    const shuffleImages = () => {
+      if (currentImages.length === 0) return;
+
+      // Fisher-Yates shuffle
+      const shuffled = [...currentImages];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      currentImages = shuffled;
+
+      // Dispatch event for gallery to reorder
+      const shuffleEvent = new CustomEvent('imagesShuffled', {
+        detail: { images: shuffled }
+      });
+      document.dispatchEvent(shuffleEvent);
+
+      showNotification('Images shuffled!', 'success');
+    };
+
+    // Save current session
+    const saveSession = () => {
+      if (!currentSeed) {
+        showNotification('No session to save', 'warning');
+        return;
+      }
+
+      const sessionData = {
+        seed: currentSeed,
+        images: currentImages,
+        timestamp: Date.now()
+      };
+
+      localStorage.setItem('savedSession', JSON.stringify(sessionData));
+      showNotification('Session saved!', 'success');
+    };
+
+    // Share current session
+    const shareSession = async () => {
+      const shareData = {
+        title: 'Random Pics - Beautiful Image Collection',
+        text: 'Check out this amazing collection of random images!',
+        url: currentSeed ? `${window.location.origin}?seed=${currentSeed}` : window.location.href
+      };
+
+      try {
+        if (navigator.share && navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+        } else {
+          // Fallback to copying URL
+          await navigator.clipboard.writeText(shareData.url);
+          showNotification('Link copied to clipboard!', 'success');
+        }
+      } catch (error) {
+        console.error('Failed to share:', error);
+        showNotification('Failed to share. Please try again.', 'error');
+      }
+    };
+
+    // Show notification
+    const showNotification = (message, type = 'info') => {
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.textContent = message;
+
+      document.body.appendChild(notification);
+
+      // Auto remove after 3 seconds
+      setTimeout(() => {
+        notification.classList.add('notification-exit');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+    };
+
+    // Add notification styles
+    const notificationStyles = `
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        z-index: 1000;
+        animation: slideInRight 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .notification-success {
+        background: #A8D5BA;
+        color: white;
+      }
+
+      .notification-error {
+        background: #FFB3A7;
+        color: white;
+      }
+
+      .notification-warning {
+        background: #F4D03F;
+        color: #2D3748;
+      }
+
+      .notification-info {
+        background: #85C1E9;
+        color: white;
+      }
+
+      .notification-exit {
+        animation: slideOutRight 0.3s ease-in;
+      }
+
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .notification {
+          left: 20px;
+          right: 20px;
+          top: auto;
+          bottom: 20px;
+          animation: slideInUp 0.3s ease-out;
+        }
+
+        .notification-exit {
+          animation: slideOutDown 0.3s ease-in;
+        }
+
+        @keyframes slideInUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideOutDown {
+          from {
+            transform: translateY(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+        }
+      }
+    `;
+
+    const styleElement = document.createElement('style');
+    styleElement.textContent = notificationStyles;
+    document.head.appendChild(styleElement);
+
+    // Event listeners
+    document.getElementById('refresh-images')?.addEventListener('click', () => {
+      loadRandomImages();
+    });
+
+    document.getElementById('load-more')?.addEventListener('click', () => {
+      loadMoreImages();
+    });
+
+    document.getElementById('shuffle-images')?.addEventListener('click', () => {
+      shuffleImages();
+    });
+
+    document.getElementById('favorite-session')?.addEventListener('click', () => {
+      saveSession();
+    });
+
+    document.getElementById('share-session')?.addEventListener('click', () => {
+      shareSession();
+    });
+
+    // Check for seed parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const seedFromUrl = urlParams.get('seed');
+
+    if (seedFromUrl && seedFromUrl !== currentSeed) {
+      // Load images with the seed from URL
+      loadRandomImages(6, seedFromUrl);
+    }
+
+    // Auto-refresh feature (optional)
+    let autoRefreshInterval = null;
+    const enableAutoRefresh = (intervalMinutes = 10) => {
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+
+      autoRefreshInterval = setInterval(() => {
+        if (!isLoading) {
+          loadRandomImages();
+        }
+      }, intervalMinutes * 60 * 1000);
+    };
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Only trigger if not in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.key.toLowerCase()) {
+        case 'r':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            loadRandomImages();
+          }
+          break;
+        case 's':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            saveSession();
+          }
+          break;
+        case 'f':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            shuffleImages();
+          }
+          break;
+      }
+    });
+
+    // Analytics events
+    const trackEvent = (action, data = {}) => {
+      // Dispatch custom events for analytics
+      const analyticsEvent = new CustomEvent('analytics', {
+        detail: {
+          action,
+          page: 'home',
+          timestamp: Date.now(),
+          ...data
+        }
+      });
+      document.dispatchEvent(analyticsEvent);
+    };
+
+    // Track initial page load
+    trackEvent('page_load', {
+      initialImageCount: currentImages.length,
+      hasInitialSeed: !!currentSeed
+    });
+  });
+</script>

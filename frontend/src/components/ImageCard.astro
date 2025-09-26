@@ -1,0 +1,380 @@
+---
+import type { ImageResponse } from '../types/api';
+
+export interface Props {
+  image: ImageResponse;
+  showTitle?: boolean;
+  showTags?: boolean;
+  showMetadata?: boolean;
+  lazyLoad?: boolean;
+  className?: string;
+}
+
+const {
+  image,
+  showTitle = true,
+  showTags = false,
+  showMetadata = false,
+  lazyLoad = true,
+  className = ''
+} = Astro.props;
+
+// Generate responsive image sizes
+const getSrcSet = (storagePath: string) => {
+  const baseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://localhost:8080';
+  const imagePath = storagePath.startsWith('/') ? storagePath : `/${storagePath}`;
+
+  // For now, return single image URL
+  // In production, you might have different sizes
+  return `${baseUrl}${imagePath}`;
+};
+
+// Format file size
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Parse tags
+const tags = image.tags ? image.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+---
+
+<article
+  class={`image-card ${className}`}
+  data-image-id={image.id}
+>
+  <div class="image-container">
+    <img
+      src={getSrcSet(image.storage_path)}
+      alt={image.alt}
+      width={image.width}
+      height={image.height}
+      loading={lazyLoad ? 'lazy' : 'eager'}
+      decoding="async"
+      class="image"
+      data-testid="image"
+    />
+
+    {showMetadata && (
+      <div class="metadata-overlay">
+        <div class="metadata-item">
+          <span class="metadata-label">Size:</span>
+          <span class="metadata-value">{formatFileSize(image.file_size)}</span>
+        </div>
+        {image.width && image.height && (
+          <div class="metadata-item">
+            <span class="metadata-label">Dimensions:</span>
+            <span class="metadata-value">{image.width} × {image.height}</span>
+          </div>
+        )}
+        {image.aspect_ratio && (
+          <div class="metadata-item">
+            <span class="metadata-label">Aspect:</span>
+            <span class="metadata-value">{image.aspect_ratio.toFixed(2)}</span>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+
+  <div class="content">
+    {showTitle && image.title && (
+      <h3 class="title" data-testid="image-title">
+        {image.title}
+      </h3>
+    )}
+
+    <p class="alt-text" data-testid="image-description">
+      {image.alt}
+    </p>
+
+    {showTags && tags.length > 0 && (
+      <div class="tags" data-testid="image-tags">
+        {tags.map((tag) => (
+          <span key={tag} class="tag">
+            {tag}
+          </span>
+        ))}
+      </div>
+    )}
+
+    {showMetadata && (
+      <div class="metadata">
+        <div class="metadata-row">
+          <span class="metadata-label">Format:</span>
+          <span class="metadata-value">{image.mime_type}</span>
+        </div>
+        <div class="metadata-row">
+          <span class="metadata-label">Weight:</span>
+          <span class="metadata-value">{image.weight}/10</span>
+        </div>
+        <div class="metadata-row">
+          <span class="metadata-label">Status:</span>
+          <span class={`metadata-value status-${image.status}`}>
+            {image.status}
+          </span>
+        </div>
+        <div class="metadata-row">
+          <span class="metadata-label">Created:</span>
+          <span class="metadata-value">
+            {new Date(image.created_at).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+    )}
+  </div>
+</article>
+
+<style>
+  .image-card {
+    @apply bg-cream border border-sage/20 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300;
+    @apply hover:scale-[1.02] focus-within:ring-2 focus-within:ring-sage/50;
+  }
+
+  .image-container {
+    @apply relative overflow-hidden;
+  }
+
+  .image {
+    @apply w-full h-auto object-cover transition-transform duration-300;
+    aspect-ratio: var(--aspect-ratio, auto);
+  }
+
+  .image-card:hover .image {
+    @apply scale-105;
+  }
+
+  .metadata-overlay {
+    @apply absolute top-2 right-2 bg-black/70 text-white text-xs rounded p-2 opacity-0 transition-opacity duration-300;
+    @apply hover:opacity-100 focus-within:opacity-100;
+  }
+
+  .content {
+    @apply p-4 space-y-3;
+  }
+
+  .title {
+    @apply text-lg font-semibold text-charcoal line-clamp-2;
+    @apply hover:text-sage transition-colors duration-200;
+  }
+
+  .alt-text {
+    @apply text-sm text-charcoal/80 leading-relaxed line-clamp-3;
+  }
+
+  .tags {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .tag {
+    @apply px-2 py-1 bg-sage/20 text-sage text-xs rounded-full;
+    @apply hover:bg-sage/30 transition-colors duration-200;
+  }
+
+  .metadata {
+    @apply space-y-2 pt-2 border-t border-sage/20;
+  }
+
+  .metadata-row,
+  .metadata-item {
+    @apply flex justify-between items-center text-xs;
+  }
+
+  .metadata-label {
+    @apply text-charcoal/60 font-medium;
+  }
+
+  .metadata-value {
+    @apply text-charcoal;
+  }
+
+  .status-active {
+    @apply text-green-600;
+  }
+
+  .status-inactive {
+    @apply text-yellow-600;
+  }
+
+  .status-processing {
+    @apply text-blue-600;
+  }
+
+  .status-failed {
+    @apply text-red-600;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .content {
+      @apply p-3 space-y-2;
+    }
+
+    .title {
+      @apply text-base;
+    }
+
+    .alt-text {
+      @apply text-xs;
+    }
+
+    .metadata-overlay {
+      @apply opacity-100 bg-black/50;
+    }
+  }
+
+  /* Accessibility improvements */
+  @media (prefers-reduced-motion: reduce) {
+    .image-card,
+    .image,
+    .metadata-overlay {
+      @apply transition-none;
+    }
+
+    .image-card:hover {
+      @apply scale-100;
+    }
+
+    .image-card:hover .image {
+      @apply scale-100;
+    }
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .image-card {
+      @apply border-2 border-charcoal;
+    }
+
+    .tag {
+      @apply border border-sage;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .metadata-overlay {
+      @apply hidden;
+    }
+
+    .image-card {
+      @apply break-inside-avoid;
+    }
+  }
+
+  /* Loading skeleton */
+  .image[loading] {
+    @apply bg-sage/10 animate-pulse;
+  }
+
+  /* Error state */
+  .image[data-error] {
+    @apply bg-coral/10 border border-coral/30;
+  }
+
+  /* Focus indicators */
+  .image:focus,
+  .title:focus {
+    @apply outline-none ring-2 ring-sage/50 ring-offset-2;
+  }
+
+  /* Line clamping utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  // Progressive enhancement for image loading
+  document.addEventListener('DOMContentLoaded', () => {
+    const images = document.querySelectorAll('.image-card img');
+
+    images.forEach((img) => {
+      const imageElement = img as HTMLImageElement;
+
+      // Add loading indicator
+      imageElement.addEventListener('loadstart', () => {
+        imageElement.setAttribute('loading', 'true');
+        imageElement.style.backgroundColor = 'rgb(168 213 186 / 0.1)';
+      });
+
+      // Handle successful load
+      imageElement.addEventListener('load', () => {
+        imageElement.removeAttribute('loading');
+        imageElement.style.backgroundColor = '';
+
+        // Dispatch custom event for analytics
+        const loadEvent = new CustomEvent('imageLoaded', {
+          detail: {
+            imageId: imageElement.closest('.image-card')?.getAttribute('data-image-id'),
+            src: imageElement.src,
+            loadTime: performance.now()
+          }
+        });
+        document.dispatchEvent(loadEvent);
+      });
+
+      // Handle load errors
+      imageElement.addEventListener('error', () => {
+        imageElement.removeAttribute('loading');
+        imageElement.setAttribute('data-error', 'true');
+        imageElement.alt = `Failed to load image: ${imageElement.alt}`;
+
+        // Set fallback background
+        imageElement.style.backgroundColor = 'rgb(255 179 167 / 0.1)';
+
+        // Dispatch error event
+        const errorEvent = new CustomEvent('imageError', {
+          detail: {
+            imageId: imageElement.closest('.image-card')?.getAttribute('data-image-id'),
+            src: imageElement.src,
+            error: 'Failed to load'
+          }
+        });
+        document.dispatchEvent(errorEvent);
+      });
+    });
+  });
+
+  // Intersection Observer for lazy loading enhancement
+  if ('IntersectionObserver' in window) {
+    const imageObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const img = entry.target as HTMLImageElement;
+
+          // Add priority loading for visible images
+          if (img.loading === 'lazy') {
+            img.loading = 'eager';
+          }
+
+          // Unobserve after loading starts
+          imageObserver.unobserve(img);
+        }
+      });
+    }, {
+      rootMargin: '50px 0px',
+      threshold: 0.1
+    });
+
+    // Observe all lazy-loaded images
+    document.querySelectorAll('img[loading="lazy"]').forEach((img) => {
+      imageObserver.observe(img);
+    });
+  }
+</script>

@@ -1,0 +1,576 @@
+openapi: 3.0.3
+info:
+  title: Responsive Random Motivational Image API
+  version: 1.0.0
+  description: |
+    REST API for managing and serving random motivational images with modern 2025 design aesthetic.
+
+    Features:
+    - Random image selection with Fisher-Yates shuffle
+    - Weighted selection and seed reproducibility
+    - Admin image management with upload/edit/delete
+    - Pluggable storage (local FS or S3-compatible)
+    - JWT/OIDC authentication with role-based access
+    - Rate limiting and comprehensive observability
+  contact:
+    name: API Support
+    url: https://github.com/your-org/randompic
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.randompic.example.com
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Prometheus metrics in text format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/random-images:
+    get:
+      summary: Get random selection of motivational images
+      tags: [Images]
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of images to return (3-5)
+          required: false
+          schema:
+            type: integer
+            minimum: 3
+            maximum: 5
+            default: 4
+        - name: tags
+          in: query
+          description: Comma-separated list of tags to filter by
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: seed
+          in: query
+          description: Random seed for reproducible results
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Random images successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RandomImagesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/images:
+    get:
+      summary: List images with pagination and filtering
+      tags: [Images]
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: tags
+          in: query
+          description: Comma-separated list of tags to filter by
+          required: false
+          schema:
+            type: string
+            maxLength: 200
+        - name: status
+          in: query
+          description: Filter by image status
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, processing, failed]
+        - name: sort_by
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+            enum: [created_at, upload_date, filename, weight]
+            default: created_at
+        - name: sort_desc
+          in: query
+          description: Sort in descending order
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Images successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListImagesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Upload new motivational image (admin only)
+      tags: [Images]
+      security:
+        - BearerAuth: [admin]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, WebP, AVIF)
+                alt:
+                  type: string
+                  minLength: 10
+                  maxLength: 500
+                  description: Descriptive alt text for accessibility
+                title:
+                  type: string
+                  maxLength: 255
+                  description: Optional image title
+                tags:
+                  type: string
+                  maxLength: 200
+                  description: Comma-separated tags
+                weight:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 1
+                  description: Selection weight for randomization
+              required: [file, alt]
+      responses:
+        '201':
+          description: Image successfully uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/images/{id}:
+    get:
+      summary: Get image by ID
+      tags: [Images]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    patch:
+      summary: Update image metadata (admin only)
+      tags: [Images]
+      security:
+        - BearerAuth: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateImageRequest'
+      responses:
+        '200':
+          description: Image successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Delete image (admin only)
+      tags: [Images]
+      security:
+        - BearerAuth: [admin]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Image UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Image successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ImageVariant:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [avif, webp, jpeg]
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 100
+        url:
+          type: string
+          format: uri
+        width:
+          type: integer
+          minimum: 100
+        height:
+          type: integer
+          minimum: 100
+      required: [format, quality, url, width, height]
+
+    ImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        alt:
+          type: string
+          minLength: 10
+          maxLength: 500
+        title:
+          type: string
+          maxLength: 255
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+        width:
+          type: integer
+          minimum: 100
+        height:
+          type: integer
+          minimum: 100
+        aspect_ratio:
+          type: number
+          format: float
+        dominant_colors:
+          type: array
+          items:
+            type: string
+            pattern: '^#[0-9A-Fa-f]{6}$'
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageVariant'
+        upload_date:
+          type: string
+          format: date-time
+      required: [id, alt, width, height, aspect_ratio, variants, upload_date]
+
+    RandomImagesResponse:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageResponse'
+          minItems: 3
+          maxItems: 5
+        seed:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          minimum: 0
+      required: [images, seed, total]
+
+    ListImagesResponse:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageResponse'
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        has_more:
+          type: boolean
+      required: [images, total, page, limit, has_more]
+
+    UpdateImageRequest:
+      type: object
+      properties:
+        alt:
+          type: string
+          minLength: 10
+          maxLength: 500
+        title:
+          type: string
+          maxLength: 255
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+        weight:
+          type: integer
+          minimum: 1
+          maximum: 10
+        status:
+          type: string
+          enum: [active, inactive]
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        database:
+          type: string
+          enum: [connected, disconnected]
+        storage:
+          type: string
+          enum: [available, unavailable]
+      required: [status, version, timestamp, database, storage]
+
+    APIError:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        details:
+          type: string
+      required: [code, message]
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+        message:
+          type: string
+      required: [field, message]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/APIError'
+        validations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+        request_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required: [error, timestamp]
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    PayloadTooLarge:
+      description: Request payload too large
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per time window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when limit resets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
