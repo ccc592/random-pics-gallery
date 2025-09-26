@@ -29,10 +29,10 @@ type Config struct {
 
 // Claims represents JWT claims structure
 type Claims struct {
-	UserID   uuid.UUID `json:"user_id"`
-	Email    string    `json:"email"`
-	Role     string    `json:"role"`
-	Username *string   `json:"username,omitempty"`
+	UserID   string  `json:"user_id"` // UUID as string to match User model
+	Email    string  `json:"email"`
+	Role     string  `json:"role"`
+	Username *string `json:"username,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -85,14 +85,14 @@ func (s *Service) GenerateToken(user *models.User, expiryDuration time.Duration)
 	expiresAt := now.Add(expiryDuration)
 
 	claims := &Claims{
-		UserID:   user.ID,
+		UserID:   user.ID, // Already a string UUID
 		Email:    user.Email,
 		Role:     user.Role,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			Audience:  []string{s.audience},
-			Subject:   user.ID.String(),
+			Subject:   user.ID, // Already a string
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			NotBefore: jwt.NewNumericDate(now),
@@ -167,7 +167,7 @@ func (s *Service) CreateUser(req *RegisterRequest) (*models.User, error) {
 
 	// Create new user
 	user := &models.User{
-		ID:        uuid.New(),
+		ID:        uuid.New().String(),
 		Email:     req.Email,
 		Username:  req.Username,
 		Role:      "user", // Default role
@@ -183,7 +183,7 @@ func (s *Service) CreateUser(req *RegisterRequest) (*models.User, error) {
 }
 
 // GetUserByID retrieves a user by ID
-func (s *Service) GetUserByID(id uuid.UUID) (*models.User, error) {
+func (s *Service) GetUserByID(id string) (*models.User, error) {
 	var user models.User
 
 	err := s.db.Where("id = ?", id).First(&user).Error
@@ -217,8 +217,8 @@ func (s *Service) GetOrCreateUserFromOIDC(email, subject string, username *strin
 	// Try to find existing user by email
 	user, err := s.GetUserByEmail(email)
 	if err == nil {
-		// User exists, update OIDC subject and last login
-		user.JWTSubject = &subject
+		// User exists, update OAuth user ID and last login
+		user.OAuthUserID = subject
 		user.UpdateLastLogin()
 
 		if err := s.db.Save(user).Error; err != nil {
@@ -230,13 +230,16 @@ func (s *Service) GetOrCreateUserFromOIDC(email, subject string, username *strin
 
 	// User doesn't exist, create new one
 	user = &models.User{
-		ID:         uuid.New(),
-		Email:      email,
-		Username:   username,
-		Role:       "user",
-		JWTSubject: &subject,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		ID:            uuid.New().String(),
+		Email:         email,
+		Username:      username,
+		Role:          "user",
+		OAuthProvider: "google", // Default to Google
+		OAuthUserID:   subject,
+		EmailVerified: false,
+		IsActive:      true,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
 	}
 	user.UpdateLastLogin()
 
@@ -248,7 +251,7 @@ func (s *Service) GetOrCreateUserFromOIDC(email, subject string, username *strin
 }
 
 // UpdateUserRole updates a user's role (admin only operation)
-func (s *Service) UpdateUserRole(userID uuid.UUID, newRole string, adminUser *models.User) error {
+func (s *Service) UpdateUserRole(userID string, newRole string, adminUser *models.User) error {
 	if !adminUser.IsAdmin() {
 		return fmt.Errorf("insufficient permissions")
 	}
@@ -308,7 +311,7 @@ func (s *Service) RevokeToken(tokenID string) error {
 }
 
 // GetUserProfile returns detailed user profile information
-func (s *Service) GetUserProfile(userID uuid.UUID) (*models.UserProfileResponse, error) {
+func (s *Service) GetUserProfile(userID string) (*models.UserProfileResponse, error) {
 	user, err := s.GetUserByID(userID)
 	if err != nil {
 		return nil, err

@@ -8,7 +8,7 @@ import { ImageAPI } from '../services/imageApi';
 let initialImages: ImageResponse[] = [];
 let initialError: string | null = null;
 let sessionSeed: string = '';
-let isLoading = false;
+const isLoading = false;
 
 try {
   // Attempt to fetch random images on the server
@@ -21,7 +21,7 @@ try {
 }
 
 // Generate cache key for client-side caching
-const cacheKey = `random_${initialImages.length}_${sessionSeed}`;
+const cacheKey = `random_${initialImages?.length || 0}_${sessionSeed || 'default'}`;
 ---
 
 <Layout

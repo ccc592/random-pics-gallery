@@ -7,7 +7,7 @@ import { ImageAPI } from '../services/imageApi';
 // Server-side rendering: fetch initial data
 let initialImages: ImageResponse[] = [];
 let initialError: string | null = null;
-let isLoading = false;
+const isLoading = false;
 
 try {
   // Fetch a larger set for the gallery page
@@ -607,13 +607,13 @@ initialImages.forEach(image => {
       tag: '',
       sort: 'random'
     };
-    let displayOptions = {
-      columns: 0,
-      gap: 6,
-      showTitles: true,
-      showTags: false,
-      showMetadata: false
-    };
+    const displayOptions = {
+    columns: 0,
+    gap: 6,
+    showTitles: true,
+    showTags: false,
+    showMetadata: false
+  };
     let isLoading = false;
     let hasMore = true;
 

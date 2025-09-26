@@ -6,16 +6,16 @@ export default defineConfig({
   integrations: [tailwind()],
   server: {
     port: 3000,
-    host: true
+    host: true,
   },
   build: {
-    assets: 'assets'
+    assets: 'assets',
   },
   vite: {
     server: {
       watch: {
-        usePolling: true
-      }
-    }
-  }
+        usePolling: true,
+      },
+    },
+  },
 });

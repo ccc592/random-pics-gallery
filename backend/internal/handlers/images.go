@@ -58,9 +58,8 @@ func (h *ImageHandler) GetRandomImages(c *gin.Context) {
 func (h *ImageHandler) GetImageByID(c *gin.Context) {
 	idStr := c.Param("id")
 
-	// Parse UUID
-	id, err := uuid.Parse(idStr)
-	if err != nil {
+	// Validate UUID format (but keep as string)
+	if _, err := uuid.Parse(idStr); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid UUID format",
 			"code":  "INVALID_REQUEST",
@@ -69,7 +68,7 @@ func (h *ImageHandler) GetImageByID(c *gin.Context) {
 	}
 
 	// Get image
-	image, err := h.imageService.GetImageByID(id)
+	image, err := h.imageService.GetImageByID(idStr)
 	if err != nil {
 		if err.Error() == "image not found" {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -333,8 +332,7 @@ func (h *ImageHandler) UpdateImage(c *gin.Context) {
 
 	// Parse image ID
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if _, err := uuid.Parse(idStr); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid UUID format",
 			"code":  "INVALID_REQUEST",
@@ -430,7 +428,7 @@ func (h *ImageHandler) UpdateImage(c *gin.Context) {
 	}
 
 	// Update image using service
-	updatedImage, err := h.imageService.UpdateImage(id, updateReq)
+	updatedImage, err := h.imageService.UpdateImage(idStr, updateReq)
 	if err != nil {
 		if err.Error() == "image not found" {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -483,8 +481,7 @@ func (h *ImageHandler) DeleteImage(c *gin.Context) {
 
 	// Parse image ID
 	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
+	if _, err := uuid.Parse(idStr); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid UUID format",
 			"code":  "INVALID_REQUEST",
@@ -493,7 +490,7 @@ func (h *ImageHandler) DeleteImage(c *gin.Context) {
 	}
 
 	// Delete image
-	err = h.imageService.DeleteImage(id)
+	err = h.imageService.DeleteImage(idStr)
 	if err != nil {
 		if err.Error() == "image not found" {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -512,6 +509,6 @@ func (h *ImageHandler) DeleteImage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "image deleted successfully",
-		"id":      id.String(),
+		"id":      idStr,
 	})
 }

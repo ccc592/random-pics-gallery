@@ -1,40 +1,40 @@
 # Data Model: Responsive Random Motivational Image Website
 
-**Created**: 2025-09-25 | **Updated**: 2025-09-25
+**Created**: 2025-09-25 | **Updated**: 2025-09-26
 **Feature**: 001-responsive-random-motivational
 
-## Database Schema
+## Database Schema (Updated for Simplified Requirements)
 
 ### Image Entity (Database Table: `images`)
 **Purpose**: Represents a single motivational/healing image with metadata
 
 **Database Fields**:
-- `id`: Primary key UUID (PostgreSQL uuid / SQLite text)
+- `id`: Primary key UUID (PostgreSQL uuid)
 - `filename`: Original uploaded filename (varchar(255), not null)
 - `alt`: Descriptive alt text for accessibility (text, not null, min 10 chars)
 - `title`: Optional image title/caption (varchar(255), nullable)
 - `tags`: Comma-separated tags (text, nullable, indexed)
 - `weight`: Selection weight for randomization (integer, default 1, range 1-10)
-- `storage_path`: Path in storage backend (varchar(500), not null)
-- `mime_type`: Image MIME type (varchar(50), not null)
-- `file_size`: Original file size in bytes (bigint)
+- `storage_path`: Local filesystem path (varchar(500), not null)
+- `mime_type`: Image MIME type (varchar(50), not null, 'image/jpeg' or 'image/png' only)
+- `file_size`: Original file size in bytes (bigint, max 2MB = 2097152 bytes)
 - `width`: Original image width in pixels (integer)
 - `height`: Original image height in pixels (integer)
 - `aspect_ratio`: Calculated width/height ratio (decimal(5,3))
-- `dominant_colors`: JSON array of hex color codes (text)
 - `upload_date`: When image was uploaded (timestamp with timezone)
-- `uploaded_by`: User ID who uploaded (uuid, foreign key)
+- `uploaded_by`: User ID who uploaded (uuid, foreign key to users.id)
 - `status`: Image status (enum: 'active', 'inactive', 'processing', 'failed')
 - `created_at`: Record creation time (timestamp with timezone)
 - `updated_at`: Record last update time (timestamp with timezone)
 
 **Validation Rules**:
-- `filename` must be unique within storage backend
+- `filename` must be unique per user within storage
 - `alt` text required and must be descriptive (min 10 characters)
 - `weight` must be between 1 and 10 inclusive
-- `mime_type` must be 'image/jpeg', 'image/png', 'image/webp', or 'image/avif'
-- `file_size` must be ≤ 10MB (configurable)
+- `mime_type` must be 'image/jpeg' or 'image/png' only (simplified formats)
+- `file_size` must be ≤ 2MB (2097152 bytes)
 - `width` and `height` must be positive integers ≥ 100px
+- `storage_path` format: `./storage/images/{user_id}/{filename}`
 
 **State Transitions**:
 - Uploaded → Processing (during image validation and processing)
@@ -43,25 +43,31 @@
 - Processing → Failed (when validation or processing fails)
 
 ### User Entity (Database Table: `users`)
-**Purpose**: Represents authenticated users with role-based access
+**Purpose**: Represents authenticated users with OAuth third-party authentication
 
 **Database Fields**:
-- `id`: Primary key UUID (PostgreSQL uuid / SQLite text)
+- `id`: Primary key UUID (PostgreSQL uuid)
 - `email`: User email address (varchar(255), unique, not null)
 - `username`: Display username (varchar(100), unique, nullable)
+- `display_name`: Full display name from OAuth provider (varchar(255), nullable)
+- `avatar_url`: Profile picture URL from OAuth provider (text, nullable)
 - `role`: User role (enum: 'user', 'admin', default: 'user')
-- `jwt_subject`: Subject claim from JWT/OIDC (varchar(255), unique)
+- `oauth_provider`: OAuth provider name (varchar(50), not null, e.g. 'google', 'github')
+- `oauth_user_id`: OAuth provider user ID (varchar(255), unique, not null)
+- `email_verified`: Email verification status from provider (boolean, default false)
+- `is_active`: User account active status (boolean, default true)
 - `last_login`: Last authentication time (timestamp with timezone)
-- `rate_limit_reset`: Rate limiting reset time (timestamp with timezone)
-- `rate_limit_count`: Current rate limit counter (integer, default 0)
+- `total_storage_used`: Total storage used in bytes (bigint, default 0, max 10GB)
 - `created_at`: Record creation time (timestamp with timezone)
 - `updated_at`: Record last update time (timestamp with timezone)
 
 **Validation Rules**:
 - `email` must be valid email format
 - `role` can only be 'user' or 'admin'
-- `jwt_subject` maps to external identity provider
-- Rate limiting: 100 requests per 15-minute window (configurable)
+- `oauth_provider` must be from allowed list (e.g., 'google', 'github')
+- `oauth_user_id` must be unique per provider
+- `total_storage_used` must not exceed 10GB (10737418240 bytes)
+- Composite unique constraint on (`oauth_provider`, `oauth_user_id`)
 
 ### API Request Log Entity (Database Table: `api_requests`)
 **Purpose**: Tracks API usage for rate limiting and analytics
@@ -83,6 +89,22 @@
 - `idx_api_requests_user_timestamp`: (`user_id`, `timestamp`) for rate limiting
 - `idx_api_requests_ip_timestamp`: (`ip_address`, `timestamp`) for IP-based limiting
 - `idx_api_requests_endpoint`: (`endpoint`) for performance monitoring
+
+### Authentication Configuration Entity (Environment/Config)
+**Purpose**: Manages Kinde authentication provider configuration
+
+**Configuration Fields**:
+- `KINDE_DOMAIN`: Kinde domain (e.g., 'your-app.kinde.com')
+- `KINDE_CLIENT_ID`: Kinde application client ID
+- `KINDE_CLIENT_SECRET`: Kinde application client secret
+- `KINDE_REDIRECT_URI`: OAuth redirect URI (e.g., 'http://localhost:3000/auth/callback')
+- `KINDE_LOGOUT_REDIRECT_URI`: Post-logout redirect URI
+- `KINDE_AUDIENCE`: API audience identifier (optional)
+- `KINDE_SCOPE`: OAuth scopes (default: 'openid profile email')
+- `JWT_ISSUER`: Expected JWT issuer (Kinde domain)
+- `JWT_AUDIENCE`: Expected JWT audience
+- `SESSION_SECRET`: Session encryption key (32+ characters)
+- `COOKIE_SECURE`: Use secure cookies in production (boolean)
 
 ### Storage Configuration Entity (Environment/Config)
 **Purpose**: Manages pluggable storage backend configuration
@@ -114,6 +136,40 @@
 - AVIF: Quality 50 (excellent compression)
 - WebP: Quality 75 (good balance)
 - JPEG: Quality 85 (high quality fallback)
+
+## Kinde Integration Patterns
+
+### User Synchronization Flow
+1. **Login via Kinde**: User authenticates through Kinde OAuth flow
+2. **Token Validation**: Backend validates Kinde JWT tokens
+3. **User Sync**: Create/update local user record from Kinde profile
+4. **Session Management**: Maintain session with role-based permissions
+5. **Refresh Handling**: Automatically refresh expired tokens
+
+### JWT Token Structure (from Kinde)
+```json
+{
+  "iss": "https://your-app.kinde.com",
+  "sub": "kinde_user_id_12345",
+  "aud": ["your-api-audience"],
+  "email": "user@example.com",
+  "email_verified": true,
+  "given_name": "John",
+  "family_name": "Doe",
+  "picture": "https://avatars.kinde.com/...",
+  "organizations": ["org_12345"],
+  "permissions": ["read:images", "create:images"],
+  "roles": ["user"],
+  "exp": 1735689600,
+  "iat": 1735686000
+}
+```
+
+### Permission Mapping
+- **Kinde Role 'user'** → Local role 'user' (read-only image access)
+- **Kinde Role 'admin'** → Local role 'admin' (full image management)
+- **Kinde Permission 'upload:images'** → Can upload new images
+- **Kinde Permission 'manage:images'** → Can edit/delete images
 
 ## Data Relationships
 
@@ -165,19 +221,28 @@ CREATE INDEX idx_images_status ON images(status);
 CREATE INDEX idx_images_tags ON images USING gin(to_tsvector('english', tags));
 CREATE INDEX idx_images_weight ON images(weight);
 
--- Users table
+-- Users table with Kinde integration
 CREATE TABLE users (
   id UUID PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   username VARCHAR(100) UNIQUE,
+  display_name VARCHAR(255),
+  avatar_url TEXT,
   role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  jwt_subject VARCHAR(255) UNIQUE,
+  kinde_user_id VARCHAR(255) UNIQUE NOT NULL,
+  kinde_organization_id VARCHAR(255),
+  email_verified BOOLEAN DEFAULT FALSE,
+  is_active BOOLEAN DEFAULT TRUE,
   last_login TIMESTAMP WITH TIME ZONE,
   rate_limit_reset TIMESTAMP WITH TIME ZONE,
   rate_limit_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE INDEX idx_users_kinde_user_id ON users(kinde_user_id);
+CREATE INDEX idx_users_kinde_org_id ON users(kinde_organization_id);
+CREATE INDEX idx_users_email_verified ON users(email_verified);
 
 -- API request tracking
 CREATE TABLE api_requests (
@@ -262,15 +327,25 @@ localStorage: {
 - Size limits prevent storage abuse
 
 ### Access Control
-- Role-based permissions (user vs admin)
-- JWT token validation for authenticated endpoints
-- Rate limiting per IP and per user
+- Kinde-based authentication with OAuth 2.0/OIDC flows
+- Role-based permissions synced from Kinde organizations
+- JWT token validation with Kinde public keys
+- Multi-tenant support via Kinde organizations (optional)
+- Rate limiting per IP and per authenticated user
 - CORS configuration for frontend access
+
+### Authentication Security
+- Kinde handles password security and MFA
+- Token-based authentication with automatic refresh
+- Secure cookie handling for session management
+- PKCE flow for frontend authentication
+- Logout clearing both local and Kinde sessions
 
 ### Audit Trail
 - Complete request logging for security analysis
 - User action tracking for admin operations
 - Image upload and modification history
+- Kinde authentication events via webhooks
 - Failed authentication attempt logging
 
 ## Accessibility Data Model

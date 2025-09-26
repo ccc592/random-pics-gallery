@@ -36,11 +36,24 @@ func NewService(db *gorm.DB, randomizer *randomizer.Service, storage StorageInte
 }
 
 // CreateImage creates a new image record in the database
-func (s *Service) CreateImage(req *models.ImageCreateRequest, uploadedBy *uuid.UUID) (*models.Image, error) {
+func (s *Service) CreateImage(req *models.ImageCreateRequest, uploadedBy *string) (*models.Image, error) {
 	now := time.Now().UTC()
 
+	var width, height int
+	if req.Width != nil {
+		width = *req.Width
+	}
+	if req.Height != nil {
+		height = *req.Height
+	}
+
+	var uploadedByStr string
+	if uploadedBy != nil {
+		uploadedByStr = *uploadedBy
+	}
+
 	image := &models.Image{
-		ID:          uuid.New(),
+		ID:          uuid.New().String(),
 		Filename:    req.Filename,
 		Alt:         req.Alt,
 		Title:       req.Title,
@@ -49,10 +62,10 @@ func (s *Service) CreateImage(req *models.ImageCreateRequest, uploadedBy *uuid.U
 		StoragePath: req.StoragePath,
 		MimeType:    req.MimeType,
 		FileSize:    req.FileSize,
-		Width:       req.Width,
-		Height:      req.Height,
-		UploadDate:  &now,
-		UploadedBy:  uploadedBy,
+		Width:       width,
+		Height:      height,
+		UploadDate:  now,
+		UploadedBy:  uploadedByStr,
 		Status:      "processing", // Start in processing status
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -61,7 +74,7 @@ func (s *Service) CreateImage(req *models.ImageCreateRequest, uploadedBy *uuid.U
 	// Calculate aspect ratio if dimensions are provided
 	if req.Width != nil && req.Height != nil && *req.Height != 0 {
 		aspectRatio := float64(*req.Width) / float64(*req.Height)
-		image.AspectRatio = &aspectRatio
+		image.AspectRatio = aspectRatio
 	}
 
 	if err := s.db.Create(image).Error; err != nil {
@@ -72,7 +85,7 @@ func (s *Service) CreateImage(req *models.ImageCreateRequest, uploadedBy *uuid.U
 }
 
 // GetImageByID retrieves an image by its ID
-func (s *Service) GetImageByID(id uuid.UUID) (*models.Image, error) {
+func (s *Service) GetImageByID(id string) (*models.Image, error) {
 	var image models.Image
 
 	err := s.db.Where("id = ?", id).First(&image).Error
@@ -87,7 +100,7 @@ func (s *Service) GetImageByID(id uuid.UUID) (*models.Image, error) {
 }
 
 // UpdateImage updates an existing image
-func (s *Service) UpdateImage(id uuid.UUID, req *models.ImageUpdateRequest) (*models.Image, error) {
+func (s *Service) UpdateImage(id string, req *models.ImageUpdateRequest) (*models.Image, error) {
 	var image models.Image
 
 	// First, get the existing image
@@ -131,7 +144,7 @@ func (s *Service) UpdateImage(id uuid.UUID, req *models.ImageUpdateRequest) (*mo
 }
 
 // DeleteImage deletes an image by its ID
-func (s *Service) DeleteImage(id uuid.UUID) error {
+func (s *Service) DeleteImage(id string) error {
 	// First, get the image to check if it exists and get storage path
 	image, err := s.GetImageByID(id)
 	if err != nil {
@@ -233,7 +246,7 @@ func (s *Service) GetRandomImages(count int, seed string) (*models.RandomImagesR
 	items := make([]randomizer.WeightedItem, len(images))
 	for i, img := range images {
 		items[i] = randomizer.WeightedItem{
-			ID:     img.ID.String(),
+			ID:     img.ID,
 			Weight: img.Weight,
 			Data:   img, // Store the full image object
 		}
@@ -269,7 +282,7 @@ func (s *Service) GetRandomImages(count int, seed string) (*models.RandomImagesR
 }
 
 // UpdateImageStatus updates the status of an image
-func (s *Service) UpdateImageStatus(id uuid.UUID, status string) error {
+func (s *Service) UpdateImageStatus(id string, status string) error {
 	err := s.db.Model(&models.Image{}).Where("id = ?", id).Update("status", status).Error
 	if err != nil {
 		return fmt.Errorf("failed to update image status: %w", err)

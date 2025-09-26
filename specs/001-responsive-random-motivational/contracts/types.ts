@@ -159,6 +159,26 @@ export interface ImageCardProps {
   onError?: (error: Error) => void;
 }
 
+// Authentication service interfaces
+export interface AuthService {
+  // OAuth flow methods
+  login(redirectUri?: string, organizationCode?: string): Promise<string>;
+  handleCallback(code: string, state: string): Promise<AuthToken>;
+  logout(): Promise<void>;
+  refreshToken(): Promise<AuthToken>;
+
+  // User management
+  getCurrentUser(): Promise<User | null>;
+  isAuthenticated(): boolean;
+  hasRole(role: 'user' | 'admin'): boolean;
+  hasPermission(permission: string): boolean;
+
+  // Session management
+  getToken(): string | null;
+  setToken(token: AuthToken): void;
+  clearSession(): void;
+}
+
 // API service interfaces
 export interface ImageAPIService {
   getRandomImages(params?: RandomImagesRequest): Promise<RandomImagesResponse>;
@@ -179,6 +199,29 @@ export interface CacheService {
   isExpired(key: string): boolean;
 }
 
+// Authentication context for React/frontend frameworks
+export interface AuthContext {
+  user: User | null;
+  token: AuthToken | null;
+  isLoading: boolean;
+  error: string | null;
+  login: (redirectUri?: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
+}
+
+// Kinde-specific frontend configuration
+export interface KindeFrontendConfig {
+  domain: string;
+  clientId: string;
+  redirectUri: string;
+  logoutRedirectUri: string;
+  audience?: string;
+  scope?: string;
+  useRefreshTokens?: boolean;
+  debugMode?: boolean;
+}
+
 // Image optimization interface
 export interface ImageOptimizer {
   getBestVariant(image: Image, viewport: ViewportInfo): ImageVariant;
@@ -196,19 +239,62 @@ export interface ViewportInfo {
   touchEnabled: boolean;
 }
 
-// Authentication interfaces (if implemented)
+// Authentication interfaces for Kinde integration
 export interface AuthToken {
   access_token: string;
-  token_type: string;
+  token_type: 'Bearer';
   expires_in: number;
   refresh_token?: string;
+  scope?: string;
 }
 
 export interface User {
   id: string;
   email: string;
   username?: string;
+  display_name?: string;
+  avatar_url?: string;
   role: 'user' | 'admin';
+  email_verified: boolean;
+  last_login?: string;
+  created_at: string;
+}
+
+export interface KindeClaims {
+  iss: string;  // Issuer (Kinde domain)
+  sub: string;  // Subject (Kinde user ID)
+  aud: string[];
+  email?: string;
+  email_verified?: boolean;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  organizations?: string[];
+  permissions?: string[];
+  roles?: string[];
+  exp: number;  // Expiration timestamp
+  iat: number;  // Issued at timestamp
+}
+
+export interface AuthCallback {
+  code: string;
+  state: string;
+}
+
+export interface AuthState {
+  state: string;
+  redirect_uri?: string;
+  organization_code?: string;
+  timestamp: number;
+}
+
+export interface KindeConfig {
+  domain: string;
+  clientId: string;
+  redirectUri: string;
+  logoutRedirectUri: string;
+  audience?: string;
+  scope?: string;
 }
 
 // Rate limiting information
@@ -230,6 +316,7 @@ export interface AnalyticsEvent {
 // Configuration types
 export interface Config {
   api: APIClientConfig;
+  auth: KindeFrontendConfig;
   cache: {
     defaultTTL: number;
     maxSize: number;
@@ -272,6 +359,29 @@ export interface BreakpointConfig {
   mobile: { min: number; max: number };
   tablet: { min: number; max: number };
   desktop: { min: number };
+}
+
+// Authentication error types
+export class AuthError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public originalError?: Error
+  ) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+export class KindeError extends Error {
+  constructor(
+    message: string,
+    public kindeErrorCode?: string,
+    public kindeErrorDescription?: string
+  ) {
+    super(message);
+    this.name = 'KindeError';
+  }
 }
 
 // Error handling
@@ -324,13 +434,29 @@ export const VALIDATION_CONSTRAINTS = {
     randomImages: { limitMin: 3, limitMax: 5 },
     list: { limitMin: 1, limitMax: 100 },
     pagination: { pageMin: 1 }
+  },
+  auth: {
+    stateLength: 32,
+    tokenMinLength: 10,
+    sessionMaxAge: 3600, // 1 hour
+    refreshThreshold: 300 // 5 minutes before expiry
   }
 } as const;
 
 // API endpoints
 export const API_ENDPOINTS = {
+  // System endpoints
   health: '/health',
   metrics: '/metrics',
+
+  // Authentication endpoints
+  authLogin: '/auth/login',
+  authCallback: '/auth/callback',
+  authLogout: '/auth/logout',
+  authMe: '/auth/me',
+  authRefresh: '/auth/refresh',
+
+  // Image endpoints
   randomImages: '/api/random-images',
   images: '/api/images',
   image: (id: string) => `/api/images/${id}`

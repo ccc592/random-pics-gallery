@@ -103,3 +103,9 @@ frontend/.astro/
 *.bak
 *.backup
 .cache/
+
+# Development environment files
+backend.log
+frontend.log
+backend.pid
+frontend.pid

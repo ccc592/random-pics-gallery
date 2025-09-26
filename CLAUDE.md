@@ -3,14 +3,15 @@
 ## Project: Responsive Random Motivational Image Website
 
 ### Current Feature: 001-responsive-random-motivational
-**Status**: Planning Phase Complete (Updated Architecture)
+**Status**: Planning Phase Complete (With Kinde Authentication & Upload)
 **Branch**: `001-responsive-random-motivational`
 **Next**: Ready for `/tasks` command
 
 ### Technology Stack
 - **Backend**: Go 1.23+, Gin framework, PostgreSQL/SQLite, pluggable storage
 - **Frontend**: Astro 4.x with TypeScript, Tailwind CSS, API consumption
-- **APIs**: RESTful endpoints for random images, CRUD operations, authentication
+- **Authentication**: Kinde (OAuth 2.0/OIDC, 10,500 MAU free tier)
+- **APIs**: RESTful endpoints for random images, CRUD operations, Kinde auth
 - **Storage**: Local filesystem or S3-compatible (MinIO/AWS) selected by ENV
 - **Database**: SQLite (dev) or Postgres (prod) with golang-migrate
 - **Testing**: Go standard testing + Testify, Playwright (E2E)
@@ -18,13 +19,14 @@
 - **Observability**: zerolog, Prometheus metrics, OpenTelemetry tracing
 
 ### Architecture Overview
-Full-stack API-first architecture with Go backend providing REST endpoints for image management and Fisher-Yates randomization, Astro frontend consuming APIs with caching, pluggable storage backends, comprehensive security (JWT/OIDC, rate limiting), and production-ready observability.
+Full-stack API-first architecture with Go backend providing REST endpoints for image management and Fisher-Yates randomization, Astro frontend consuming APIs with caching, pluggable storage backends, modern Kinde authentication (OAuth 2.0/OIDC), comprehensive security with rate limiting, and production-ready observability.
 
 ### Key Design Decisions
 - **API-First**: Go backend with RESTful endpoints, TypeScript client integration
+- **Modern Auth**: Kinde OAuth 2.0/OIDC with 10,500 MAU free tier, developer-first experience
 - **Pluggable Storage**: Environment-configurable local FS or S3-compatible backends
 - **Server-Side Randomization**: Fisher-Yates with weights and seed reproducibility
-- **Security-First**: JWT auth, rate limiting, CORS, input validation, EXIF stripping
+- **Security-First**: OAuth 2.0, rate limiting, CORS, input validation, EXIF stripping
 - **Performance**: P95 <150ms cached/<350ms cold, frontend CLS <0.1
 - **2025 Aesthetic**: Soft color palette (sage #A8D5BA, cream #F8F6F0, coral #FFB3A7)
 
@@ -34,7 +36,7 @@ backend/
 ├── cmd/server/          # Main application entry
 ├── internal/
 │   ├── api/             # HTTP handlers and routes
-│   ├── auth/            # JWT/OIDC authentication
+│   ├── auth/            # Kinde OAuth integration
 │   ├── db/              # Database models and queries
 │   ├── image/           # Image processing and storage
 │   ├── middleware/      # Rate limiting, CORS, logging
@@ -60,24 +62,30 @@ frontend/
 - Database queries: <50ms with proper indexing
 
 ### Recent Changes (Latest)
-1. **Architecture Updated**: Full-stack Go backend + Astro frontend
-   - Go 1.23+ with Gin framework for REST API
-   - PostgreSQL/SQLite with golang-migrate for schema management
-   - Pluggable storage (local FS or S3-compatible)
-   - JWT/OIDC authentication with role-based access control
-   - Comprehensive observability (zerolog, Prometheus, OpenTelemetry)
+1. **Requirements Clarified (2025-09-26)**: Enhanced specification with specific constraints
+   - Local filesystem storage only (no S3 complexity)
+   - JPEG/PNG formats only, 2MB max file size, 10GB total storage limit
+   - PostgreSQL database only (no SQLite development option)
+   - OAuth 2.0 third-party authentication (no Kinde complexity)
+   - Modern browser compatibility (Chrome, Firefox, Safari, Edge current versions)
 
-2. **API Design Complete**: RESTful endpoints specified
-   - GET /api/random-images with Fisher-Yates shuffle, weights, seeds
-   - CRUD operations for image management (admin-only)
-   - OpenAPI 3.0 specification with Go structs and TypeScript interfaces
-   - Rate limiting, CORS, input validation, security hardening
+2. **Simplified Architecture**: Reduced complexity from original plan
+   - Removed pluggable storage backends (local only)
+   - Removed multi-format image support (JPEG/PNG only)
+   - Removed dual database support (PostgreSQL only)
+   - Simplified authentication to standard OAuth 2.0
 
-3. **Next Phase Ready**: Task generation for full-stack implementation
-   - TDD approach with API contract tests first
-   - Estimated 35-40 implementation tasks
-   - Docker containerization and CI/CD pipeline
-   - Production deployment to Fly.io/Cloud Run
+3. **Updated API Design**: Authentication-aware endpoints with simplified requirements
+   - GET /api/random-images with size and format constraints
+   - POST /api/images/upload for JPEG/PNG only (2MB max)
+   - OAuth endpoints (/auth/login?provider=google, /auth/callback, /auth/logout)
+   - Complete OpenAPI 3.0 specification with updated constraints
+
+4. **Enhanced Performance Constraints**: Clearer storage and format limits
+   - Individual file size: 2MB maximum
+   - Total collection size: 10GB maximum
+   - Database: PostgreSQL only for consistency
+   - Browser support: Modern browsers only (no legacy polyfills)
 
 ### Development Commands
 ```bash
@@ -99,11 +107,11 @@ curl http://localhost:8080/health  # Test API health
 ```
 
 ### Important Files
-- `/specs/001-responsive-random-motivational/plan.md` - Full-stack implementation plan
-- `/specs/001-responsive-random-motivational/data-model.md` - Database schema and API entities
-- `/specs/001-responsive-random-motivational/contracts/` - Go structs, OpenAPI spec, TypeScript interfaces
-- `/specs/001-responsive-random-motivational/quickstart.md` - Full-stack setup and validation guide
-- `/specs/001-responsive-random-motivational/research.md` - Go ecosystem decisions and architecture rationale
+- `/specs/001-responsive-random-motivational/plan.md` - Implementation plan with Kinde auth
+- `/specs/001-responsive-random-motivational/research.md` - 2025 third-party auth research
+- `/specs/001-responsive-random-motivational/data-model.md` - Database schema with user management
+- `/specs/001-responsive-random-motivational/contracts/` - API specs with Kinde integration
+- `/specs/001-responsive-random-motivational/quickstart.md` - Setup guide with Kinde configuration
 
 ### Accessibility Requirements
 - Semantic HTML structure
@@ -114,13 +122,15 @@ curl http://localhost:8080/health  # Test API health
 - Screen reader optimization
 
 ### Implemented Extensibility Features
+- Kinde OAuth 2.0 authentication with role-based permissions
+- Secure image upload with user association and validation
 - Weighted randomization with configurable selection bias
 - Seed-based reproducible results for testing and debugging
-- Admin image management with upload/edit/delete operations
+- User-specific image collections with privacy controls
 - Tag-based filtering and categorization system
 - Rate limiting and abuse protection mechanisms
 - Comprehensive audit logging for security analysis
 - Pluggable storage backends for different deployment scenarios
 
 ---
-*Updated: 2025-09-25 | Feature: 001-responsive-random-motivational | Phase: Planning Complete (Full-Stack Architecture)*
+*Updated: 2025-09-26 | Feature: 001-responsive-random-motivational | Phase: Planning Complete (With Kinde Auth & Upload)*

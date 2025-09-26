@@ -1,42 +1,195 @@
 run:
-  timeout: 5m
+  timeout: 10m
+  issues-exit-code: 1
+  tests: true
   modules-download-mode: readonly
+  go: "1.24"
 
 linters:
   enable:
+    # Format and imports
+    - gofmt
+    - goimports
+    - gofumpt
+
+    # Core linters
     - errcheck
     - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - gofmt
-    - goimports
+    - typecheck
+
+    # Style and best practices
     - misspell
     - unconvert
     - unparam
-    - gosec
     - gocritic
+    - revive
+    - stylecheck
+    - whitespace
+    - wsl
+
+    # Security
+    - gosec
+
+    # Complexity and maintainability
+    - gocyclo
+    - funlen
+    - gocognit
+
+    # Bug prevention
+    - bodyclose
+    - nilerr
+    - rowserrcheck
+    - sqlclosecheck
+
+    # Performance
+    - prealloc
+
+    # Import organization
+    - gci
+
+  disable:
+    - varnamelen # too restrictive for this project
+    - tagliatelle # not needed for this API
+    - testpackage # tests can be in same package
+    - paralleltest # not required for this project
+    - tparallel # not required for this project
 
 linters-settings:
   govet:
-    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment # too restrictive for this project
+
   gofmt:
     simplify: true
+
+  gofumpt:
+    extra-rules: true
+
   goimports:
-    local-prefixes: github.com/randompic/api
+    local-prefixes: randompic-backend
+
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(randompic-backend)
+    skip-generated: true
+
   misspell:
     locale: US
+    ignore-words:
+      - kinde # Kinde is a proper noun (OAuth provider)
+
   gosec:
     excludes:
-      - G404 # weak random generator acceptable for non-crypto use
+      - G404 # weak random generator acceptable for non-crypto use in randomizer
+      - G501 # MD5 acceptable for non-crypto use (checksums, etags)
+    config:
+      G401: "sha1" # SHA1 acceptable for non-crypto use
+
+  gocyclo:
+    min-complexity: 15
+
+  funlen:
+    lines: 100
+    statements: 60
+
+  gocognit:
+    min-complexity: 20
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+    disabled-checks:
+      - whyNoLint # we want to allow //nolint without explanation
+      - unnamedResult # named returns not always required
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
+
+  stylecheck:
+    checks: ["all", "-ST1003", "-ST1016"] # allow underscores in names, allow long lines in return statements
+
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
 
 issues:
   exclude-use-default: false
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocyclo
+        - gocognit
+        - dupl
+
+    # Exclude some linters from running on generated files
+    - path: ".*\\.gen\\.go"
+      linters:
+        - gofmt
+        - goimports
+        - gofumpt
+        - gci
+        - gocritic
+        - revive
+        - stylecheck
+
+    # Exclude some rules in test files
+    - path: _test\.go
+      text: "use of `fmt.Print`"
+      linters:
+        - gosec
+
+    # Allow dot imports in tests
+    - path: _test\.go
+      text: "dot imports"
+      linters:
+        - revive
+
+    # Allow long lines in generated files
+    - path: ".*\\.gen\\.go"
+      text: "line is"
+
+    # Specific exclusions for database models
+    - path: "internal/db/models/"
+      text: "struct field .* should be .*"
+      linters:
+        - revive
+
+    # Specific exclusions for main.go
+    - path: "cmd/server/main\\.go"
+      text: "main function"
+      linters:
+        - funlen
+
   exclude:
+    # Exclude common false positives
     - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
+    - "exported .* should have comment"
+    - "comment on exported .* should be of the form"
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: false
 
 output:
-  format: colored-line-number
   print-issued-lines: true
   print-linter-name: true

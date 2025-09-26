@@ -2,23 +2,21 @@ package models
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // APIRequest represents the api_requests table structure for rate limiting and analytics
 type APIRequest struct {
-	ID             uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"id"`
-	UserID         *uuid.UUID `gorm:"type:uuid;foreignKey:UserID;references:ID" json:"user_id,omitempty"`
-	IPAddress      string     `gorm:"type:varchar(45)" json:"ip_address"`
-	Endpoint       string     `gorm:"type:varchar(200)" json:"endpoint"`
-	Method         string     `gorm:"type:varchar(10)" json:"method"`
-	StatusCode     int        `gorm:"type:integer" json:"status_code"`
-	ResponseTimeMs int        `gorm:"type:integer" json:"response_time_ms"`
-	UserAgent      *string    `gorm:"type:text" json:"user_agent,omitempty"`
-	Parameters     *string    `gorm:"type:text" json:"parameters,omitempty"` // JSON string
-	Timestamp      time.Time  `gorm:"type:timestamp with time zone;default:now()" json:"timestamp"`
-	RateLimited    bool       `gorm:"type:boolean;default:false" json:"rate_limited"`
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       *string   `gorm:"type:uuid;index" json:"user_id,omitempty"`
+	IPAddress    string    `gorm:"type:varchar(45);not null" json:"ip_address"`
+	Method       string    `gorm:"type:varchar(10);not null" json:"method"`
+	Endpoint     string    `gorm:"type:varchar(255);not null;index" json:"endpoint"`
+	StatusCode   int       `gorm:"not null" json:"status_code"`
+	ResponseTime int       `gorm:"not null" json:"response_time"` // milliseconds
+	RequestSize  int       `gorm:"not null;default:0" json:"request_size"`
+	ResponseSize int       `gorm:"not null;default:0" json:"response_size"`
+	UserAgent    string    `gorm:"type:text" json:"user_agent"`
+	CreatedAt    time.Time `json:"created_at"`
 
 	// Foreign key relationship
 	User *User `gorm:"foreignKey:UserID" json:"user,omitempty"`
@@ -31,30 +29,30 @@ func (APIRequest) TableName() string {
 
 // APIRequestCreateRequest represents the request payload for creating an API request log
 type APIRequestCreateRequest struct {
-	UserID         *uuid.UUID `json:"user_id,omitempty"`
-	IPAddress      string     `json:"ip_address" validate:"required"`
-	Endpoint       string     `json:"endpoint" validate:"required"`
-	Method         string     `json:"method" validate:"required"`
-	StatusCode     int        `json:"status_code"`
-	ResponseTimeMs int        `json:"response_time_ms"`
-	UserAgent      *string    `json:"user_agent,omitempty"`
-	Parameters     *string    `json:"parameters,omitempty"`
-	RateLimited    bool       `json:"rate_limited"`
+	UserID       *string `json:"user_id,omitempty"`
+	IPAddress    string  `json:"ip_address" validate:"required"`
+	Method       string  `json:"method" validate:"required"`
+	Endpoint     string  `json:"endpoint" validate:"required"`
+	StatusCode   int     `json:"status_code"`
+	ResponseTime int     `json:"response_time"`
+	RequestSize  int     `json:"request_size"`
+	ResponseSize int     `json:"response_size"`
+	UserAgent    string  `json:"user_agent"`
 }
 
 // APIRequestResponse represents the response payload for API request operations
 type APIRequestResponse struct {
-	ID             uuid.UUID `json:"id"`
-	UserID         *string   `json:"user_id,omitempty"` // UUID as string
-	IPAddress      string    `json:"ip_address"`
-	Endpoint       string    `json:"endpoint"`
-	Method         string    `json:"method"`
-	StatusCode     int       `json:"status_code"`
-	ResponseTimeMs int       `json:"response_time_ms"`
-	UserAgent      *string   `json:"user_agent,omitempty"`
-	Parameters     *string   `json:"parameters,omitempty"`
-	Timestamp      string    `json:"timestamp"` // Formatted as ISO 8601
-	RateLimited    bool      `json:"rate_limited"`
+	ID           uint   `json:"id"`
+	UserID       *string `json:"user_id,omitempty"` // UUID as string
+	IPAddress    string  `json:"ip_address"`
+	Method       string  `json:"method"`
+	Endpoint     string  `json:"endpoint"`
+	StatusCode   int     `json:"status_code"`
+	ResponseTime int     `json:"response_time"`
+	RequestSize  int     `json:"request_size"`
+	ResponseSize int     `json:"response_size"`
+	UserAgent    string  `json:"user_agent"`
+	CreatedAt    string  `json:"created_at"` // Formatted as ISO 8601
 }
 
 // APIRequestListResponse represents the response for paginated API request list
@@ -109,31 +107,24 @@ type RateLimitStatus struct {
 
 // BeforeCreate is a GORM hook that runs before creating a record
 func (ar *APIRequest) BeforeCreate() error {
-	if ar.ID == uuid.Nil {
-		ar.ID = uuid.New()
-	}
+	// GORM will handle auto-increment for ID
 	return nil
 }
 
 // ToResponse converts APIRequest model to APIRequestResponse
 func (ar *APIRequest) ToResponse() APIRequestResponse {
 	response := APIRequestResponse{
-		ID:             ar.ID,
-		IPAddress:      ar.IPAddress,
-		Endpoint:       ar.Endpoint,
-		Method:         ar.Method,
-		StatusCode:     ar.StatusCode,
-		ResponseTimeMs: ar.ResponseTimeMs,
-		UserAgent:      ar.UserAgent,
-		Parameters:     ar.Parameters,
-		Timestamp:      ar.Timestamp.Format(time.RFC3339),
-		RateLimited:    ar.RateLimited,
-	}
-
-	// Format user ID if present
-	if ar.UserID != nil {
-		userID := ar.UserID.String()
-		response.UserID = &userID
+		ID:           ar.ID,
+		UserID:       ar.UserID,
+		IPAddress:    ar.IPAddress,
+		Method:       ar.Method,
+		Endpoint:     ar.Endpoint,
+		StatusCode:   ar.StatusCode,
+		ResponseTime: ar.ResponseTime,
+		RequestSize:  ar.RequestSize,
+		ResponseSize: ar.ResponseSize,
+		UserAgent:    ar.UserAgent,
+		CreatedAt:    ar.CreatedAt.Format(time.RFC3339),
 	}
 
 	return response
@@ -156,7 +147,7 @@ func (ar *APIRequest) IsServerError() bool {
 
 // IsSlow checks if the API request took longer than the specified threshold (in milliseconds)
 func (ar *APIRequest) IsSlow(thresholdMs int) bool {
-	return ar.ResponseTimeMs > thresholdMs
+	return ar.ResponseTime > thresholdMs
 }
 
 // GetEndpointGroup returns a simplified endpoint group for analytics

@@ -1,16 +1,17 @@
 openapi: 3.0.3
 info:
-  title: Responsive Random Motivational Image API
+  title: Responsive Random Motivational Image API (Simplified)
   version: 1.0.0
   description: |
-    REST API for managing and serving random motivational images with modern 2025 design aesthetic.
+    REST API for managing and serving random motivational images with simplified architecture.
 
-    Features:
+    **Simplified Features**:
+    - Local filesystem storage only (no S3)
+    - JPEG/PNG formats only (2MB max, 10GB total)
+    - PostgreSQL database only (no SQLite)
+    - OAuth 2.0 third-party authentication
+    - Modern browser compatibility only
     - Random image selection with Fisher-Yates shuffle
-    - Weighted selection and seed reproducibility
-    - Admin image management with upload/edit/delete
-    - Pluggable storage (local FS or S3-compatible)
-    - JWT/OIDC authentication with role-based access
     - Rate limiting and comprehensive observability
   contact:
     name: API Support
@@ -26,6 +27,136 @@ security:
   - BearerAuth: []
 
 paths:
+  /auth/login:
+    get:
+      summary: Initiate OAuth login flow (Google/GitHub)
+      tags: [Authentication]
+      security: []
+      parameters:
+        - name: provider
+          in: query
+          description: OAuth provider (google, github)
+          required: true
+          schema:
+            type: string
+            enum: [google, github]
+        - name: redirect_uri
+          in: query
+          description: Post-login redirect URI
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        '302':
+          description: Redirect to OAuth provider authorization URL
+          headers:
+            Location:
+              description: OAuth provider authorization URL
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/callback:
+    get:
+      summary: Handle OAuth callback from provider
+      tags: [Authentication]
+      security: []
+      parameters:
+        - name: code
+          in: query
+          description: OAuth authorization code from provider
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: OAuth state parameter for CSRF protection
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to frontend with auth success
+          headers:
+            Set-Cookie:
+              description: Secure session cookie
+              schema:
+                type: string
+            Location:
+              description: Frontend redirect URL
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      summary: Logout user and clear session
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '302':
+          description: Redirect to home page
+          headers:
+            Set-Cookie:
+              description: Clear session cookie
+              schema:
+                type: string
+            Location:
+              description: Home page URL
+              schema:
+                type: string
+                format: uri
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user profile
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/refresh:
+    post:
+      summary: Refresh authentication token
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token successfully refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /health:
     get:
       summary: Health check endpoint
@@ -177,7 +308,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Image file (JPEG, PNG, WebP, AVIF)
+                  description: Image file (JPEG or PNG only, max 2MB)
                 alt:
                   type: string
                   minLength: 10
@@ -320,8 +451,87 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: |
+        JWT tokens issued by Kinde authentication service.
+
+        **How to get a token:**
+        1. Initiate login via GET /auth/login
+        2. Complete OAuth flow at Kinde
+        3. Receive token via /auth/callback
+        4. Include in Authorization header: Bearer {token}
+
+        **Token claims include:**
+        - `sub`: Kinde user ID
+        - `email`: User email address
+        - `role`: User role (user/admin)
+        - `permissions`: Granular permissions array
+        - `organizations`: User's Kinde organizations
 
   schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        role:
+          type: string
+          enum: [user, admin]
+        email_verified:
+          type: boolean
+        last_login:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      required: [id, email, role, email_verified, created_at]
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Token expiration in seconds
+        refresh_token:
+          type: string
+          description: Refresh token for getting new access tokens
+        scope:
+          type: string
+          description: Token scopes
+      required: [access_token, token_type, expires_in]
+
+    KindeAuthState:
+      type: object
+      properties:
+        state:
+          type: string
+          description: CSRF protection state
+        redirect_uri:
+          type: string
+          format: uri
+          description: Post-auth redirect URL
+        organization_code:
+          type: string
+          description: Kinde organization code (optional)
+      required: [state]
+
     ImageVariant:
       type: object
       properties:
