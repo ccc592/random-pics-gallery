@@ -1,0 +1,42 @@
+# Build outputs
+dist/
+.astro/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Environment and config
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test-results/
+playwright-report/
+blob-report/
+
+# Logs
+*.log
+
+# Lock files (don't format)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+
+# Temporary files
+*.tmp
+*.temp
