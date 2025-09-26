@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -437,7 +438,6 @@ func (h *ImageUploadHandler) HandleImageUpload(c *gin.Context) {
 }
 
 // storeFile stores the file data to the local filesystem
-// This is a simplified implementation - in production you'd use the storage interface
 func (h *ImageUploadHandler) storeFile(storagePath string, data []byte) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(storagePath)
@@ -446,13 +446,18 @@ func (h *ImageUploadHandler) storeFile(storagePath string, data []byte) error {
 	}
 
 	// Write file to disk
-	// This is a placeholder - in production you'd use the actual storage service
-	return fmt.Errorf("storage service not implemented - would write %d bytes to %s", len(data), storagePath)
+	if err := os.WriteFile(storagePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write file to %s: %w", storagePath, err)
+	}
+
+	return nil
 }
 
 // createDirIfNotExists creates a directory if it doesn't exist
 func createDirIfNotExists(dirPath string) error {
-	// This is a placeholder - in production you'd use the actual file system operations
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		return os.MkdirAll(dirPath, 0755)
+	}
 	return nil
 }
 

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -140,6 +141,57 @@ func (h *RandomImagesHandler) validateRandomImagesRequest(c *gin.Context) (int, 
 	return limit, tags, seed, validationErrors
 }
 
+// applyFisherYatesSelection applies Fisher-Yates shuffle with weighted selection to images
+func (h *RandomImagesHandler) applyFisherYatesSelection(images []models.Image, limit int, seed int64) []models.Image {
+	if len(images) == 0 {
+		return []models.Image{}
+	}
+
+	// Use seed for reproducible randomization
+	rand.Seed(seed)
+
+	// Create a copy to avoid modifying the original slice
+	imagesCopy := make([]models.Image, len(images))
+	copy(imagesCopy, images)
+
+	// Apply Fisher-Yates shuffle considering weights
+	for i := len(imagesCopy) - 1; i > 0; i-- {
+		// Weight-based selection probability
+		totalWeight := 0
+		for j := 0; j <= i; j++ {
+			totalWeight += imagesCopy[j].Weight
+		}
+
+		if totalWeight == 0 {
+			// If no weights, use uniform distribution
+			j := rand.Intn(i + 1)
+			imagesCopy[i], imagesCopy[j] = imagesCopy[j], imagesCopy[i]
+		} else {
+			// Weighted selection
+			randWeight := rand.Intn(totalWeight)
+			currentWeight := 0
+			selectedIndex := 0
+
+			for j := 0; j <= i; j++ {
+				currentWeight += imagesCopy[j].Weight
+				if currentWeight > randWeight {
+					selectedIndex = j
+					break
+				}
+			}
+
+			imagesCopy[i], imagesCopy[selectedIndex] = imagesCopy[selectedIndex], imagesCopy[i]
+		}
+	}
+
+	// Return the requested number of images
+	if limit > len(imagesCopy) {
+		limit = len(imagesCopy)
+	}
+
+	return imagesCopy[:limit]
+}
+
 // filterImagesByTags filters images based on tag criteria
 func (h *RandomImagesHandler) filterImagesByTags(images []models.Image, tagFilter string) []models.Image {
 	if tagFilter == "" {
@@ -240,19 +292,21 @@ func (h *RandomImagesHandler) HandleRandomImages(c *gin.Context) {
 			return
 		}
 
-		// Apply Fisher-Yates selection manually to filtered images
-		response, err = h.imageService.GetRandomImages(limit, seedString)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, h.createErrorResponse(
-				http.StatusInternalServerError,
-				"Failed to apply randomization to filtered images",
-				err.Error(),
-			))
-			return
+		// Apply Fisher-Yates randomization to filtered images
+		selectedImages := h.applyFisherYatesSelection(filteredImages, limit, seed)
+
+		// Convert filtered images to response format and use them instead of the unfiltered response
+		imageResponses := make([]ImageResponse, len(selectedImages))
+		for i, img := range selectedImages {
+			imageResponses[i] = h.convertImageToResponse(img)
 		}
 
-		// For simplicity, if we have filtered results, we'll return them
-		// In production, you'd want to integrate tag filtering into the image service
+		c.JSON(http.StatusOK, RandomImagesResponse{
+			Images: imageResponses,
+			Seed:   seed,
+			Total:  len(selectedImages),
+		})
+		return
 	}
 
 	// Convert to API response format
