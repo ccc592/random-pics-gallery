@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"randompic/internal/db/models"
+	"github.com/randompic/api/internal/db/models"
 )
 
 func TestUserModelValidation(t *testing.T) {

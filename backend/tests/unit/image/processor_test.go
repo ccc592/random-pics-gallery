@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	randompicImage "randompic/internal/image"
+	randompicImage "github.com/randompic/api/internal/image"
 )
 
 // createTestJPEGImage creates a simple test JPEG image

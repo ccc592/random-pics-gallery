@@ -16,9 +16,9 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"randompic/internal/api/handlers"
-	"randompic/internal/db/models"
-	"randompic/internal/randomizer"
+	"github.com/randompic/api/internal/api/handlers"
+	"github.com/randompic/api/internal/db/models"
+	"github.com/randompic/api/internal/services"
 )
 
 // setupTestDB creates an in-memory SQLite database for testing

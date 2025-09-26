@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"randompic/internal/image"
+	"github.com/randompic/api/internal/image"
 )
 
 func TestLocalFileOperations(t *testing.T) {

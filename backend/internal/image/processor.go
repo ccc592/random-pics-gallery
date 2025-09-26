@@ -181,8 +181,12 @@ func (p *ImageProcessor) GenerateThumbnail(input io.Reader, width, height int) (
 		return nil, fmt.Errorf("failed to decode image: %w", err)
 	}
 
-	// Create thumbnail
-	thumbnail := p.createThumbnail(img, width, height)
+	// Create thumbnail using the maximum dimension
+	maxSize := width
+	if height > width {
+		maxSize = height
+	}
+	thumbnail := p.createThumbnail(img, maxSize)
 
 	// Encode as JPEG for thumbnails (smaller file size)
 	var output bytes.Buffer

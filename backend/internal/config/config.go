@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/randompic/api/internal/db"
 	"github.com/randompic/api/internal/middleware"
 	"gorm.io/gorm/logger"
 )
@@ -264,12 +263,16 @@ func loadRateLimitConfig() *RateLimitConfig {
 	return &RateLimitConfig{
 		Enabled: getBoolEnv("RATE_LIMIT_ENABLED", true),
 		Anonymous: &middleware.RateLimitConfig{
-			RequestsPerMinute: getIntEnv("RATE_LIMIT_ANONYMOUS_REQUESTS", 60),
-			BurstSize:         getIntEnv("RATE_LIMIT_ANONYMOUS_BURST", 10),
+			RequestsPerWindow: getIntEnv("RATE_LIMIT_ANONYMOUS_REQUESTS", 60),
+			WindowSize:        time.Minute,
+			CleanupInterval:   5 * time.Minute,
+			AdminMultiplier:   getIntEnv("RATE_LIMIT_ADMIN_MULTIPLIER", 5),
 		},
 		Authenticated: &middleware.RateLimitConfig{
-			RequestsPerMinute: getIntEnv("RATE_LIMIT_AUTHENTICATED_REQUESTS", 300),
-			BurstSize:         getIntEnv("RATE_LIMIT_AUTHENTICATED_BURST", 50),
+			RequestsPerWindow: getIntEnv("RATE_LIMIT_AUTHENTICATED_REQUESTS", 300),
+			WindowSize:        time.Minute,
+			CleanupInterval:   5 * time.Minute,
+			AdminMultiplier:   getIntEnv("RATE_LIMIT_ADMIN_MULTIPLIER", 5),
 		},
 	}
 }
